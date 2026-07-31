@@ -4,8 +4,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 01 dokončena
-- Poslední dokončená fáze: 01 – Inicializace projektu
+- Aktuální fáze: 02 dokončena
+- Poslední dokončená fáze: 02 – Konfigurace a datové kontrakty
 - Poslední aktualizace: 2026-07-31
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
@@ -17,7 +17,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | Fáze | Název | Stav | Datum dokončení |
 |---|---|---|---|
 | 01 | Inicializace projektu | Dokončeno | 2026-07-29 |
-| 02 | Konfigurace a datové kontrakty | Nezahájeno | — |
+| 02 | Konfigurace a datové kontrakty | Dokončeno | 2026-07-31 |
 | 03 | MongoDB a repozitáře | Nezahájeno | — |
 | 04 | Design systém a sdílená pozvánka | Nezahájeno | — |
 | 05 | Veřejná úvodní stránka | Nezahájeno | — |
@@ -39,6 +39,8 @@ Sem zapisujte rozhodnutí, která ovlivňují více fází. U každého uveďte 
 
 - 2026-07-29 – Použit pnpm 11.9.0 místo výchozího npm. Důvod: v dostupném prostředí nebyl příkaz `npm`, zatímco lokální LTS Node.js runtime obsahoval pnpm. Dopad: projekt má pouze `pnpm-lock.yaml` a README používá pnpm.
 - 2026-07-31 – Lokální Git repozitář byl inicializován na větvi `main`. Důvod: sledování změn projektu. Dopad: `.env.example` je verzovatelný, zatímco `.env.local` zůstává ignorovaný; pro první commit je třeba nastavit Git jméno a e-mail.
+- 2026-07-31 – Sdílená validace používá Zod 4.4.3 jako přímou závislost. Důvod: serverové i budoucí klientské formuláře musí sdílet stejné, typově odvozené kontrakty. Dopad: datové vstupy se ověřují schématy v `lib/rsvp/schemas.ts`; databázová ani UI vrstva se ve fázi 02 nezavádí.
+- 2026-07-31 – Všechny hodnoty prostředí jsou ve fázi 02 pouze serverové; veřejná konfigurace je záměrně prázdná. Důvod: žádná současná klientská funkce hodnotu prostředí nepotřebuje a `APP_URL` i tajný kód budou sloužit pouze serverovému toku magic linku. Dopad: budoucí veřejná proměnná musí být vědomě přidána do `lib/config/public.ts`, nikoli odvozena ze serverové konfigurace.
 
 ## Známá omezení a otevřené otázky
 
@@ -160,3 +162,72 @@ Všechny tři adresy se otevřou bez chyby 404 a zobrazí česky označený doč
 #### Poznámky pro následující fázi
 
 Kostra nepřidává žádnou doménovou ani databázovou logiku; fáze 02 může bez přestavby zaplnit připravené adresáře `lib/config` a `lib/rsvp`.
+
+### Fáze 02 – Konfigurace a datové kontrakty
+
+- Datum dokončení: 2026-07-31
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Byla připravena validovaná serverová konfigurace pro MongoDB, URL aplikace, svatební kód a platnosti tokenu/session. Konfigurace se načítá až při serverovém použití a její chyba vypisuje pouze názvy vadných proměnných. Doména RSVP nyní obsahuje typy osoby, dopravy, dietních omezení, vlastníka a časových údajů. Zod schémata ověřují žádost o magic link, osobu, celou odpověď i administrátorské filtry včetně závislostí odvoz/dieta. Přibyly testy normalizace a čisté validační logiky.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `lib/config/env.server.ts` a `lib/config/env.schema.ts` – chráněný serverový vstup konfigurace a čisté schéma pro jednotkové testy
+- `lib/config/public.ts` – výslovně prázdná veřejná konfigurace pro budoucí vědomé přidávání bezpečných hodnot
+- `lib/auth/emails.ts` – normalizace e-mailu a pevně zadané administrátorské adresy
+- `lib/rsvp/types.ts` – doménové TypeScript typy RSVP
+- `lib/rsvp/schemas.ts` – Zod schémata, limity a odvozené vstupní typy
+- `tests/emails.test.ts`, `tests/env.test.ts`, `tests/rsvp-validation.test.ts` – 10 jednotkových testů normalizace, konfigurace a validace
+- `.env.example` – úplná bezpečná šablona povinné konfigurace bez tajných hodnot
+- `package.json`, `pnpm-lock.yaml`, `tsconfig.json` – přímé závislosti Zod 4.4.3 a `server-only` plus podpora TypeScript testovacích importů v Node.js 24
+- `README.md` – aktuální stav fáze a instrukce ke konfiguraci
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: E-mail se pouze ořízne a převede na malá písmena, bez poskytovatelsky specifických úprav.
+- Důvod: Odstranění například teček u Gmailu by mohlo nežádoucím způsobem změnit význam jiné platné adresy.
+- Dopad na další fáze: Role i vlastnictví dat musí používat `normalizeEmail` ze `lib/auth/emails.ts`.
+- Rozhodnutí: Schémata odmítají neznámá pole místo jejich ukládání.
+- Důvod: Klient nesmí ovlivnit databázová data poli mimo výslovně definovaný kontrakt.
+- Dopad na další fáze: Route handlery musí pracovat pouze s výstupem `safeParse`/`parse` těchto schémat.
+
+#### Známá omezení nebo nedodělky
+
+- Záměrně nejsou vytvořeny MongoDB dotazy, route handlery, session, magic-link tok ani UI formuláře; patří do následujících fází.
+- Serverová konfigurace zatím není volána placeholder stránkami. Fáze 03 a 06 musí před svým serverovým použitím volat `getServerEnv()`.
+
+#### Chyby, které se objevily
+
+- Chyba: Přidání závislosti pnpm nejdříve nemohlo otevřít existující úložiště mimo pracovní adresář.
+- Příčina: Sandbox nepovoloval zápis do indexu již existujícího lokálního pnpm store.
+- Způsob opravy: Stejný příkaz byl spuštěn s povoleným přístupem k existujícímu lokálnímu store; žádný balíček se nestahoval.
+- Zůstává nějaké riziko: Ne.
+- Chyba: První běh kontrol odhalil nekompatibilní textové parametry `.strict()` v Zodu 4 a neřešitelný alias `@/` pro samostatný Node test runner.
+- Příčina: Rozdíl API Zodu 4 a absence Next resolveru v `node --test`.
+- Způsob opravy: Schémata používají API Zodu 4 a testovatelné relativní TypeScript importy.
+- Zůstává nějaké riziko: Ne; lint, typová kontrola i testy následně prošly.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch, 10 testů.
+- `pnpm build` – úspěch; optimalizované sestavení vytvořilo `/`, `/host` a `/admin`.
+- `pnpm dev --hostname 127.0.0.1 --port 3001` a HTTP požadavek na `/` – server úspěšně nastartoval, stránka odpověděla HTTP 200.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Zkopírujte `.env.example` do `.env.local`, vyplňte `MONGODB_URI` bezpečnou lokální ukázkou `mongodb://127.0.0.1:27017` a ponechte hodnotu `WEDDING_CODE` prázdnou.
+2. V kořeni projektu spusťte `node --conditions react-server --env-file=.env.local --input-type=module -e 'import { getServerEnv } from "./lib/config/env.server.ts"; getServerEnv()'`.
+3. Doplňte do `.env.local` lokální testovací hodnotu svatebního kódu a spusťte `pnpm test`.
+4. V testovacím výstupu ověřte případy prázdného jména, chybějícího cíle odvozu, chybějícího upřesnění jiné diety, více než 20 osob a e-mailu s mezerami a velkými písmeny.
+
+#### Očekávaný výsledek ručního testu
+
+Příkaz s prázdnou konfigurací skončí s českou chybou obsahující název `WEDDING_CODE`, nikdy však jeho hodnotu. `pnpm test` úspěšně dokončí všech 10 testů. Neplatné vstupy jsou odmítnuty, zatímco e-mail s mezerami a velkými písmeny se normalizuje na malá písmena bez okrajových mezer.
+
+#### Poznámky pro následující fázi
+
+Fáze 03 může použít `getServerEnv()` pro MongoDB URI a název databáze. Kontrakty `Rsvp`, `Person` a validační výstupy jsou připravené pro repozitář, ale `ownerEmail`, `createdAt` a `updatedAt` nesmí přijímat z formuláře; doplní je důvěryhodná serverová vrstva.
