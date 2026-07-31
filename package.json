@@ -9,12 +9,15 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --conditions react-server --test",
+    "test:db": "RUN_MONGODB_INTEGRATION_TESTS=true node --conditions react-server --env-file-if-exists=.env.test --test tests/db-repositories.test.ts",
+    "db:indexes": "node --conditions react-server --env-file=.env.local scripts/init-mongodb-indexes.ts"
   },
   "dependencies": {
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "mongodb": "7.1.0",
     "server-only": "0.0.1",
     "zod": "4.4.3"
   },

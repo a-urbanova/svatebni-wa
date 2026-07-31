@@ -4,13 +4,13 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 02 dokončena
-- Poslední dokončená fáze: 02 – Konfigurace a datové kontrakty
+- Aktuální fáze: 04 dokončena
+- Poslední dokončená fáze: 04 – Design systém a sdílená pozvánka
 - Poslední aktualizace: 2026-07-31
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
 - Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.2.12, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3
-- Databáze používaná při lokálním vývoji: zatím neurčena
+- Databáze používaná při lokálním vývoji: lokální MongoDB z necommitovaného `.env.local` na `127.0.0.1:27017`; izolované testy používají samostatnou databázi `svatebni_wa_test`
 
 ## Přehled fází
 
@@ -18,8 +18,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 |---|---|---|---|
 | 01 | Inicializace projektu | Dokončeno | 2026-07-29 |
 | 02 | Konfigurace a datové kontrakty | Dokončeno | 2026-07-31 |
-| 03 | MongoDB a repozitáře | Nezahájeno | — |
-| 04 | Design systém a sdílená pozvánka | Nezahájeno | — |
+| 03 | MongoDB a repozitáře | Dokončeno | 2026-07-31 |
+| 04 | Design systém a sdílená pozvánka | Dokončeno | 2026-07-31 |
 | 05 | Veřejná úvodní stránka | Nezahájeno | — |
 | 06 | Žádost o magic link | Nezahájeno | — |
 | 07 | Ověření, session, role a odhlášení | Nezahájeno | — |
@@ -41,6 +41,8 @@ Sem zapisujte rozhodnutí, která ovlivňují více fází. U každého uveďte 
 - 2026-07-31 – Lokální Git repozitář byl inicializován na větvi `main`. Důvod: sledování změn projektu. Dopad: `.env.example` je verzovatelný, zatímco `.env.local` zůstává ignorovaný; pro první commit je třeba nastavit Git jméno a e-mail.
 - 2026-07-31 – Sdílená validace používá Zod 4.4.3 jako přímou závislost. Důvod: serverové i budoucí klientské formuláře musí sdílet stejné, typově odvozené kontrakty. Dopad: datové vstupy se ověřují schématy v `lib/rsvp/schemas.ts`; databázová ani UI vrstva se ve fázi 02 nezavádí.
 - 2026-07-31 – Všechny hodnoty prostředí jsou ve fázi 02 pouze serverové; veřejná konfigurace je záměrně prázdná. Důvod: žádná současná klientská funkce hodnotu prostředí nepotřebuje a `APP_URL` i tajný kód budou sloužit pouze serverovému toku magic linku. Dopad: budoucí veřejná proměnná musí být vědomě přidána do `lib/config/public.ts`, nikoli odvozena ze serverové konfigurace.
+- 2026-07-31 – Databázové integrační testy vyžadují výhradně `MONGODB_TEST_URI` a `MONGODB_TEST_DB_NAME` v necommitovaném `.env.test`; název musí končit `_test`. Důvod: test před spuštěním i po skončení maže celou databázi a nesmí se nikdy dotknout běžné vývojové ani produkční databáze. Dopad: `pnpm test` databázový test přeskočí, zatímco `pnpm test:db` se bez explicitní izolované konfigurace bezpečně zastaví.
+- 2026-07-31 – Design systém používá lokálně dostupné systémové fontové stacky `Georgia`/`Times New Roman` pro patkovou sazbu a `Inter`/systémové sans-serif pro ovládací prvky. Důvod: fonty mají bezpečné fallbacky s českou diakritikou a nezavádějí síťovou závislost ani riziko selhání lokálního buildu. Dopad: případné budoucí webové písmo musí zachovat tyto fallbacky.
 
 ## Známá omezení a otevřené otázky
 
@@ -231,3 +233,137 @@ Příkaz s prázdnou konfigurací skončí s českou chybou obsahující název 
 #### Poznámky pro následující fázi
 
 Fáze 03 může použít `getServerEnv()` pro MongoDB URI a název databáze. Kontrakty `Rsvp`, `Person` a validační výstupy jsou připravené pro repozitář, ale `ownerEmail`, `createdAt` a `updatedAt` nesmí přijímat z formuláře; doplní je důvěryhodná serverová vrstva.
+
+### Fáze 03 – MongoDB a repozitáře
+
+- Datum dokončení: 2026-07-31
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Vznikl serverový MongoDB klient sdílený mezi hot-reload cykly, typované kolekce a opakovatelná inicializace indexů. Repozitáře bezpečně ukládají pouze SHA-256 otisky magic-link a session tokenů, token spotřebovávají atomicky a odmítají expirované hodnoty. RSVP repozitář normalizuje vlastníka, nastavuje timestampy na serveru, upsertuje jen validační kontrakt a poskytuje read-only přehled osob pro budoucí správu. Přibyl integrační test proti oddělené databázi, který před i po testu maže jen databázi se jménem končícím `_test`.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `lib/db/mongodb.ts` – znovupoužitelný serverový klient a přístup k aplikační databázi
+- `lib/db/collections.ts`, `lib/db/documents.ts`, `lib/db/indexes.ts` – typy dokumentů, kolekce a bezpečné indexy
+- `lib/db/repositories/login-tokens.ts`, `lib/db/repositories/sessions.ts`, `lib/db/repositories/rsvps.ts` – datové operace bez ukládání čitelných tajných hodnot
+- `lib/db/repositories/index.ts` a `lib/auth/secrets.ts` – serverový vstup repozitářů a hashování tajných hodnot
+- `scripts/init-mongodb-indexes.ts`, `package.json` – příkaz `pnpm db:indexes` a explicitní `pnpm test:db`
+- `tests/db-repositories.test.ts`, `.env.test.example` – izolovaný integrační test a bezpečná šablona jeho konfigurace
+- `README.md`, `.gitignore` – postup spuštění indexů a testů bez verzování `.env.test`
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Do MongoDB se ukládá SHA-256 otisk tokenu/session v Base64URL, ne čitelná hodnota.
+- Důvod: Únik databáze nesmí přímo umožnit převzetí magic linku ani session.
+- Dopad na další fáze: Fáze 06 a 07 předají repozitářům čitelný náhodný token jen pro zahashování a do cookie jej uloží až jejich HTTP vrstva.
+- Rozhodnutí: Integrační databáze má vlastní proměnné a povinnou příponu `_test`.
+- Důvod: Test ji maže a nesmí omylem použít vývojovou databázi.
+- Dopad na další fáze: Před databázovým testem je nutné spustit MongoDB a vytvořit `.env.test` podle šablony.
+
+#### Známá omezení nebo nedodělky
+
+- HTTP route handlery, cookies, generování tokenů a uživatelské rozhraní záměrně patří do následujících fází.
+
+#### Chyby, které se objevily
+
+- Chyba: První instalace driveru použila jiný pnpm store.
+- Příčina: Prostředí Codexu předávalo pnpm jinou výchozí cestu store než existující `node_modules`.
+- Způsob opravy: Driver byl nainstalován přes existující lokální pnpm store; krátce vytvořený pracovní store byl odstraněn.
+- Zůstává nějaké riziko: Ne.
+- Chyba: Inicializace indexů v sandboxu nejdříve skončila `EPERM`, po povolení lokálního síťového spojení pak `ECONNREFUSED 127.0.0.1:27017`.
+- Příčina: Lokální MongoDB server neběžel.
+- Způsob opravy: Po instalaci a spuštění MongoDB byly indexy úspěšně vytvořeny a izolovaný test proběhl nad databází `svatebni_wa_test`.
+- Zůstává nějaké riziko: Ne.
+
+#### Provedené automatické kontroly
+
+- `pnpm typecheck` – úspěch.
+- `pnpm lint` – úspěch.
+- `pnpm test` – úspěch: 10 testů prošlo, 1 databázový test byl očekávaně přeskočen bez `.env.test`.
+- `pnpm db:indexes` – úspěch; indexy byly vytvořeny v lokální vývojové databázi.
+- `pnpm test:db` – úspěch; 1 integrační test prošel nad izolovanou databází `svatebni_wa_test`, která byla po testu smazána.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Spusťte lokální MongoDB podle hodnot v `.env.local`.
+2. Spusťte `pnpm db:indexes`.
+3. Zkopírujte `.env.test.example` do `.env.test`, nastavte samostatnou databázi se jménem končícím `_test` a spusťte `pnpm test:db`.
+4. V MongoDB nástroji zkontrolujte indexy `login_tokens_token_hash_unique`, `login_tokens_expires_at_ttl`, `sessions_session_hash_unique`, `sessions_expires_at_ttl` a `rsvps_owner_email_unique`.
+5. Po skončení testu ověřte, že testovací databáze byla smazána a vývojová databáze zůstala nedotčená.
+
+#### Očekávaný výsledek ručního testu
+
+Inicializace indexů i integrační test úspěšně skončí. V testovací databázi se před jejím smazáním nevyskytuje čitelné pole tokenu ani session tokenu a duplicitní `ownerEmail` nelze vložit. Běžná vývojová databáze se při `pnpm test:db` nepoužije ani nezmění.
+
+#### Poznámky pro následující fázi
+
+Fáze 06/07 mohou používat `getRepositories()`; přímé konstrukční funkce repozitářů jsou určeny také pro izolované testy.
+
+### Fáze 04 – Design systém a sdílená pozvánka
+
+- Datum dokončení: 2026-07-31
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Byl vytvořen znovupoužitelný vizuální základ: tokeny barev, typografie, rozestupů, rádiusů, stínů a šířek obsahu, globální focus styl a responzivní rozložení. Sdílená pozvánka s přesnými údaji o svatbě se nyní zobrazí na `/` i `/host`; obsahuje vlastní přístupnostně skrytý SVG motiv propojených prstenů a linkový oddělovač. Zbývající části obou stránek jsou záměrně jasné placeholdery bez funkčního přihlášení nebo RSVP formuláře.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `components/invitation.tsx` – sdílená sekce pozvánky pro veřejnou i hostovskou stránku
+- `components/ui.tsx` – znovupoužitelné karty, varianty tlačítek, popisek pole, stavová zpráva, prsteny a oddělovač
+- `app/globals.css` – tokeny a responzivní styl společných UI prvků, úzkého pozvánkového i širokého admin kontejneru
+- `app/page.tsx` a `app/host/page.tsx` – nahrazení placeholderu sdílenou pozvánkou a nefunkčními informačními kartami
+- `app/admin/page.tsx` – ponechaný jasný placeholder převedený na připravený široký admin kontejner
+- `docs/POSTUP.md` – pravdivý záznam fáze 04
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Pozvánka je serverová React komponenta a dekorace jsou jednoduché inline SVG/CSS.
+- Důvod: Obě stránky sdílejí shodný obsah bez klientského JavaScriptu a reference zůstávají jen v dokumentaci.
+- Dopad na další fáze: Fáze 05 až 08 mohou do hotového layoutu vložit funkční přihlášení a RSVP bez kopírování pozvánky.
+- Rozhodnutí: Použity jsou systémové fontové fallbacky místo stahovaného externího písma.
+- Důvod: Bezpečný lokální build i po zablokování externích fontů a zachování české diakritiky.
+- Dopad na další fáze: Vizuální styl lze později rozšířit o lokálně hostované písmo, aniž by se odstranily fallbacky.
+
+#### Známá omezení nebo nedodělky
+
+- Přihlašovací karta, magic link, session a RSVP formulář nejsou záměrně funkční; patří do fází 05 až 09.
+- Neproběhlo pixelově přesné ladění kompletních budoucích stavů formuláře ani administrace; tyto obrazovky zatím nejsou v rozsahu fáze 04.
+
+#### Chyby, které se objevily
+
+- Chyba: Lokální vývojový server při prvním spuštění v sandboxu nemohl otevřít port `127.0.0.1:3001` (`EPERM`).
+- Příčina: Sandbox omezuje síťové naslouchání.
+- Způsob opravy: Server a lokální HTTP ověření byly spuštěny s povoleným lokálním síťovým přístupem.
+- Zůstává nějaké riziko: Ne; `/` i `/host` následně odpověděly HTTP 200 a vykreslily požadovaný obsah.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 10 testů prošlo, 1 databázový test byl očekávaně přeskočen bez explicitního `.env.test`.
+- `pnpm build` – úspěch; produkční build vytvořil `/`, `/host` i `/admin`.
+- `pnpm dev --hostname 127.0.0.1 --port 3001` a HTTP požadavky na `/` a `/host` – úspěch, obě adresy odpověděly HTTP 200.
+
+#### Návrh ručního testování dokončené fáze
+
+1. V kořeni projektu spusťte `pnpm dev` a otevřete `/` a `/host`.
+2. Při šířkách přibližně 360, 768 a 1440 px zkontrolujte teplé pozadí, úzký středový sloupec, velká jména, starorůžový ampersand, motiv prstenů a tenký oddělovač.
+3. Ověřte text „21. září 2026“, „ve 12:00“ a „u kostela sv. Antonína Velikého v Liberci“, včetně správné české diakritiky.
+4. Klávesou Tab přejděte na případné ovládací prvky na budoucích stránkách a ověřte viditelný focus; pozvánka samotná nevkládá žádný funkční formulář.
+5. V nástrojích prohlížeče dočasně blokujte síťová načítání fontů a obnovte stránku.
+
+#### Očekávaný výsledek ručního testu
+
+Obě stránky zobrazí stejnou čitelnou pozvánku bez ořezu či horizontálního posunu, s vlastními dekoracemi a skutečným českým textem. Na malém displeji se řádky přirozeně zalomí. I při blokování externích fontů zůstane sazba funkční díky systémovým fallbackům. Pod pozvánkou se zobrazí pouze jasně označený nefunkční placeholder příslušné následující fáze.
+
+#### Poznámky pro následující fázi
+
+Fáze 05 má vložit skutečný přihlašovací formulář do existující karty na `/` a využít `Card`, `FieldLabel`, `PrimaryButton` a `StatusMessage`; nemá měnit text ani strukturu `InvitationSection`.
+
+#### Dodatečná oprava po vizuálním testu
+
+- 2026-07-31 – Na zúženém viewportu se po skrytí responsivního `<br>` spojila slova „obřad, který“ a „Velikého v“. Příčina: zalomení samo nenese znak mezery. Oprava: do `components/invitation.tsx` byla vložena explicitní mezera za obě zalomení; text je správný při zobrazeném i skrytém zalomení.
