@@ -1,23 +1,24 @@
 import { InvitationSection } from "@/components/invitation";
-import { Card, FieldLabel, StatusMessage } from "@/components/ui";
+import { LoginForm } from "@/components/login-form";
+import { Card } from "@/components/ui";
 
 export default function Home() {
   return (
-    <main className="page-shell page-shell-invitation">
-      <div className="content-container content-container-narrow">
-        <InvitationSection />
-        <Card className="next-step-card" aria-labelledby="login-placeholder-title">
-          <h2 id="login-placeholder-title">Přihlášení</h2>
-          <p>
-            Přihlašovací formulář a žádost o magic link budou doplněny v další
-            fázi.
-          </p>
-          <FieldLabel>E-mail a svatební kód</FieldLabel>
-          <StatusMessage>
-            Tato ukázka zatím neodesílá žádné údaje.
-          </StatusMessage>
-        </Card>
-      </div>
-    </main>
+    <>
+      <main className="page-shell page-shell-invitation">
+        <div className="content-container content-container-narrow">
+          <InvitationSection />
+          <Card className="login-card" aria-labelledby="login-title">
+            <h2 id="login-title">Přihlášení</h2>
+            <p className="login-instructions">
+              Zadejte e-mail a společný svatební kód, který jste obdrželi v
+              pozvánce.
+            </p>
+            <LoginForm />
+          </Card>
+        </div>
+      </main>
+      <footer className="site-footer">Anna &amp; Petr · 21. září 2026</footer>
+    </>
   );
 }

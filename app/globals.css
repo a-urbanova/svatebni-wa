@@ -130,7 +130,7 @@ button:disabled {
 }
 
 .invitation-names,
-.next-step-card h2 {
+.login-card h2 {
   font-family: var(--font-serif);
   font-weight: 400;
 }
@@ -234,23 +234,78 @@ button:disabled {
   box-shadow: var(--shadow-card);
 }
 
-.next-step-card {
+.login-card {
   display: grid;
   justify-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
   margin-top: var(--space-8);
-  padding: clamp(2rem, 6vw, 3.5rem);
+  padding: clamp(2rem, 6vw, 3.5rem) clamp(1.5rem, 6vw, 3.5rem);
   text-align: center;
 }
 
-.next-step-card h2 {
+.login-card h2 {
   font-size: clamp(2rem, 6vw, 2.65rem);
   line-height: 1.1;
 }
 
-.next-step-card > p:not(.status-message) {
+.login-instructions {
   max-width: 29rem;
   color: var(--color-text-muted);
+}
+
+.login-form {
+  display: grid;
+  width: min(100%, 28.5rem);
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  text-align: left;
+}
+
+.form-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.form-field input {
+  width: 100%;
+  min-height: 2.85rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.form-field input::placeholder {
+  color: #a19590;
+  opacity: 1;
+}
+
+.form-field input:hover {
+  border-color: var(--color-accent-light);
+}
+
+.form-field input:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 3px 0 -1px rgb(199 131 118 / 25%);
+}
+
+.form-field input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.field-error {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: var(--space-2);
 }
 
 .status-message {
@@ -259,6 +314,11 @@ button:disabled {
   color: var(--color-text-muted);
   font-size: 0.92rem;
   line-height: 1.5;
+}
+
+.login-form .status-message {
+  max-width: none;
+  text-align: center;
 }
 
 .status-message-success {
@@ -305,6 +365,16 @@ button:disabled {
 .button-outline:not(:disabled):hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
+}
+
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-6) var(--space-5);
+  color: var(--color-text-muted);
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-style: italic;
+  text-align: center;
 }
 
 @media (max-width: 40rem) {

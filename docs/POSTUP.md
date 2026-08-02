@@ -4,9 +4,9 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 04 dokončena
-- Poslední dokončená fáze: 04 – Design systém a sdílená pozvánka
-- Poslední aktualizace: 2026-07-31
+- Aktuální fáze: 05 dokončena
+- Poslední dokončená fáze: 05 – Veřejná úvodní stránka
+- Poslední aktualizace: 2026-08-02
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
 - Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.2.12, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3
@@ -20,7 +20,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 02 | Konfigurace a datové kontrakty | Dokončeno | 2026-07-31 |
 | 03 | MongoDB a repozitáře | Dokončeno | 2026-07-31 |
 | 04 | Design systém a sdílená pozvánka | Dokončeno | 2026-07-31 |
-| 05 | Veřejná úvodní stránka | Nezahájeno | — |
+| 05 | Veřejná úvodní stránka | Dokončeno | 2026-08-02 |
 | 06 | Žádost o magic link | Nezahájeno | — |
 | 07 | Ověření, session, role a odhlášení | Nezahájeno | — |
 | 08 | Formulář hosta – UI | Nezahájeno | — |
@@ -368,6 +368,67 @@ Fáze 05 má vložit skutečný přihlašovací formulář do existující karty
 
 - 2026-07-31 – Na zúženém viewportu se po skrytí responsivního `<br>` spojila slova „obřad, který“ a „Velikého v“. Příčina: zalomení samo nenese znak mezery. Oprava: do `components/invitation.tsx` byla vložena explicitní mezera za obě zalomení; text je správný při zobrazeném i skrytém zalomení.
 
+### Fáze 05 – Veřejná úvodní stránka
+
+- Datum dokončení: 2026-08-02
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Veřejná stránka `/` nyní obsahuje dokončenou přihlašovací kartu podle reference se skutečnými popisky, e-mailem, svatebním kódem a širokým primárním tlačítkem. Pozvánka zůstala jedinou sdílenou komponentou; její vysvětlení doplňuje registraci účasti, počet osob a dětí, přespání, odvoz i dietární omezení. Formulář provádí klientskou validaci pomocí existujícího sdíleného schématu, nabízí konkrétní chyby polí, stav odesílání, obecnou chybu i úspěch. V developmentu dočasný handler pouze zobrazí informaci, že funkce bude aktivována v další fázi; neposílá data, nevytváří token ani netvrdí, že magic link odešel. Přibylo také jemné zápatí.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `components/login-form.tsx` – klientský přihlašovací formulář, přístupné chybové stavy a výslovně dočasný handler bez síťového požadavku
+- `app/page.tsx` – hotový veřejný layout, přihlašovací karta a zápatí
+- `components/invitation.tsx` – rozšířené vysvětlení procesu RSVP při zachování sdílené pozvánky
+- `app/globals.css` – vzhled podtržených polí, chyb, odesílání, přihlašovací karty a zápatí podle reference
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 05
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Klientská validace používá přímo `magicLinkRequestSchema` ze sdílené doménové vrstvy.
+- Důvod: E-mail se normalizuje a obě pole se kontrolují stejnými limity a českými zprávami jako budoucí serverová žádost.
+- Dopad na další fáze: Fáze 06 může nahradit jen dočasný handler skutečným Route Handlerem bez změny formulářového kontraktu.
+- Rozhodnutí: Dočasný handler nevolá žádné API a v developmentu explicitně říká, že magic link nebyl vytvořen ani odeslán.
+- Důvod: Fáze 05 nesmí napodobovat ani předbíhat autentifikaci.
+- Dopad na další fáze: Serverové ověření svatebního kódu, tvorba tokenu a doručení zůstávají výhradně ve fázi 06.
+
+#### Známá omezení nebo nedodělky
+
+- Svatební kód se v této fázi neověřuje na serveru a formulář nevytváří, neodesílá ani nezobrazuje magic link.
+- Session, přesměrování a autorizace nejsou součástí této fáze.
+
+#### Chyby, které se objevily
+
+- Chyba: První pokus o spuštění lokálního vývojového serveru skončil chybou `EPERM` při otevření portu `127.0.0.1:3000`.
+- Příčina: Sandbox omezuje síťové naslouchání.
+- Způsob opravy: Vývojový server a následné lokální HTTP ověření byly spuštěny s povoleným lokálním síťovým přístupem.
+- Zůstává nějaké riziko: Ne; `/` odpovědělo HTTP 200 a obsahovalo očekávané prvky formuláře.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 10 testů prošlo, 1 databázový test byl očekávaně přeskočen bez explicitního `.env.test`.
+- `pnpm dev --hostname 127.0.0.1 --port 3000` a lokální HTTP požadavek na `/` – úspěch; server nastartoval a stránka odpověděla HTTP 200 s nadpisem, formulářem a svatebním kódem.
+
+#### Návrh ručního testování dokončené fáze
+
+1. V kořeni projektu spusťte `pnpm dev` a otevřete `/` v šířkách přibližně 360, 768 a 1440 px.
+2. Porovnejte úzký středový sloupec, kartu s podtrženými poli, široké starorůžové tlačítko a nenápadné zápatí s `docs/reference/uvodni_stranka.png`.
+3. Odešlete prázdný formulář, pak zadejte neplatný e-mail a nakonec prázdný nebo více než 128 znaků dlouhý svatební kód.
+4. Zadejte platný e-mail a neprázdný kód, odešlete formulář a ověřte stav tlačítka během zpracování i následné informační sdělení.
+5. Pomocí klávesy Tab, Shift+Tab, Enter a pouze klávesnice projděte celý formulář; zkontrolujte viditelný focus a vazbu chyb na příslušná pole.
+6. V prohlížeči ověřte, že e-mail nabízí vhodný autofill, kód se po napsání maskuje a po odeslání se v adrese neobjeví ani e-mail, ani svatební kód.
+
+#### Očekávaný výsledek ručního testu
+
+Stránka je čitelná bez vodorovného posunu, odpovídá atmosférou referenci a používá skutečné formulářové prvky. Neplatná data zobrazí české chyby přímo u polí; platná data krátce zobrazí odesílání a v developmentu následně přesně sdělení, že funkce bude aktivována v další fázi a magic link nebyl vytvořen ani odeslán. Formulář je ovladatelný z klávesnice a tajný kód se nepřenáší do URL.
+
+#### Poznámky pro následující fázi
+
+Fáze 06 má nahradit pouze `handleTemporaryLoginRequest` v `components/login-form.tsx` skutečným bezpečným HTTP tokem. Musí zachovat obecnou odpověď vůči existenci e-mailu a nesmí vracet či zobrazit magic link v produkčním režimu.
 
 
 

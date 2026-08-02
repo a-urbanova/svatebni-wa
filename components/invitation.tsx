@@ -25,8 +25,9 @@ export function InvitationSection() {
       </div>
 
       <p className="invitation-intro">
-        Po přihlášení budete moci vyplnit účast, osoby, přespání, odvoz a
-        dietární omezení.
+        Po přihlášení budete moci zaregistrovat svou účast, doplnit počet osob
+        včetně dětí, přespání, případný odvoz i dietární omezení. Pro přihlášení
+        použijte svůj e-mail a společný svatební kód.
       </p>
       <SectionDivider />
     </section>
