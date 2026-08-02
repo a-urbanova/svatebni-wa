@@ -360,10 +360,17 @@ Byl vytvořen znovupoužitelný vizuální základ: tokeny barev, typografie, ro
 
 Obě stránky zobrazí stejnou čitelnou pozvánku bez ořezu či horizontálního posunu, s vlastními dekoracemi a skutečným českým textem. Na malém displeji se řádky přirozeně zalomí. I při blokování externích fontů zůstane sazba funkční díky systémovým fallbackům. Pod pozvánkou se zobrazí pouze jasně označený nefunkční placeholder příslušné následující fáze.
 
-#### Poznámky pro následující fázi
+### Poznámky pro následující fázi
 
 Fáze 05 má vložit skutečný přihlašovací formulář do existující karty na `/` a využít `Card`, `FieldLabel`, `PrimaryButton` a `StatusMessage`; nemá měnit text ani strukturu `InvitationSection`.
 
 #### Dodatečná oprava po vizuálním testu
 
 - 2026-07-31 – Na zúženém viewportu se po skrytí responsivního `<br>` spojila slova „obřad, který“ a „Velikého v“. Příčina: zalomení samo nenese znak mezery. Oprava: do `components/invitation.tsx` byla vložena explicitní mezera za obě zalomení; text je správný při zobrazeném i skrytém zalomení.
+
+
+
+
+
+
+

@@ -95,3 +95,15 @@ Před ukončením fáze:
 - zapiš skutečné změny, soubory, rozhodnutí, chyby a opravy,
 - zapiš výše uvedený ruční test a očekávaný výsledek,
 - neoznačuj jako dokončené nic, co nebylo provedeno nebo ověřeno.
+
+
+
+
+
+
+
+
+
+
+
+
