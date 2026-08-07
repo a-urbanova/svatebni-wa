@@ -308,6 +308,17 @@ button:disabled {
   margin-top: var(--space-2);
 }
 
+.development-magic-link {
+  margin: calc(var(--space-3) * -1) 0 0;
+  text-align: center;
+}
+
+.development-magic-link a {
+  color: var(--color-accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .status-message {
   max-width: 34rem;
   border-radius: var(--radius-sm);

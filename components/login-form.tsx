@@ -13,23 +13,19 @@ const initialValues = {
   weddingCode: "",
 };
 
-/**
- * Jasně dočasný handler pro fázi 05. Neodesílá hodnoty mimo prohlížeč a
- * neprovádí autentifikaci; skutečný tok bude přidán až ve fázi 06.
- */
-async function handleTemporaryLoginRequest(): Promise<void> {
-  await new Promise<void>((resolve) => window.setTimeout(resolve, 350));
-
-  if (process.env.NODE_ENV !== "development") {
-    throw new Error("Magic link zatím není k dispozici.");
-  }
-}
+type MagicLinkApiResponse = {
+  kind: "success" | "invalid_input" | "invalid_wedding_code" | "server_error";
+  message: string;
+  fieldErrors?: FieldErrors;
+  developmentMagicLink?: string;
+};
 
 export function LoginForm() {
   const [values, setValues] = useState(initialValues);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [developmentMagicLink, setDevelopmentMagicLink] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function updateValue(event: ChangeEvent<HTMLInputElement>) {
@@ -42,6 +38,7 @@ export function LoginForm() {
     setFieldErrors((currentErrors) => ({ ...currentErrors, [fieldName]: undefined }));
     setFormError("");
     setSuccessMessage("");
+    setDevelopmentMagicLink("");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -49,6 +46,7 @@ export function LoginForm() {
     setFieldErrors({});
     setFormError("");
     setSuccessMessage("");
+    setDevelopmentMagicLink("");
 
     const parsedValues = magicLinkRequestSchema.safeParse(values);
 
@@ -74,10 +72,23 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      await handleTemporaryLoginRequest();
-      setSuccessMessage("Funkce bude aktivována v další fázi. Magic link zatím nebyl vytvořen ani odeslán.");
+      const response = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsedValues.data),
+      });
+      const result = (await response.json()) as MagicLinkApiResponse;
+
+      if (!response.ok) {
+        setFieldErrors(result.fieldErrors ?? {});
+        setFormError(result.message || "Odkaz se teď nepodařilo připravit. Zkuste to prosím později.");
+        return;
+      }
+
+      setSuccessMessage(result.message);
+      setDevelopmentMagicLink(result.developmentMagicLink ?? "");
     } catch {
-      setFormError("Přihlášení se zatím nepodařilo připravit. Zkuste to prosím později.");
+      setFormError("Odkaz se teď nepodařilo připravit. Zkuste to prosím později.");
     } finally {
       setIsSubmitting(false);
     }
@@ -135,6 +146,11 @@ export function LoginForm() {
 
       {formError ? <StatusMessage tone="error">{formError}</StatusMessage> : null}
       {successMessage ? <StatusMessage tone="success">{successMessage}</StatusMessage> : null}
+      {developmentMagicLink ? (
+        <p className="development-magic-link">
+          <a href={developmentMagicLink}>Otevřít vývojový magic link</a>
+        </p>
+      ) : null}
 
       <PrimaryButton className="login-submit" disabled={isSubmitting} type="submit">
         {isSubmitting ? "Ověřujeme údaje…" : "Přihlásit se"}

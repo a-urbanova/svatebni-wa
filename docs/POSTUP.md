@@ -4,8 +4,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 05 dokončena
-- Poslední dokončená fáze: 05 – Veřejná úvodní stránka
+- Aktuální fáze: 06 dokončena
+- Poslední dokončená fáze: 06 – Žádost o magic link
 - Poslední aktualizace: 2026-08-02
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
@@ -21,7 +21,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 03 | MongoDB a repozitáře | Dokončeno | 2026-07-31 |
 | 04 | Design systém a sdílená pozvánka | Dokončeno | 2026-07-31 |
 | 05 | Veřejná úvodní stránka | Dokončeno | 2026-08-02 |
-| 06 | Žádost o magic link | Nezahájeno | — |
+| 06 | Žádost o magic link | Dokončeno | 2026-08-02 |
 | 07 | Ověření, session, role a odhlášení | Nezahájeno | — |
 | 08 | Formulář hosta – UI | Nezahájeno | — |
 | 09 | Uložení a načtení RSVP | Nezahájeno | — |
@@ -430,7 +430,78 @@ Stránka je čitelná bez vodorovného posunu, odpovídá atmosférou referenci 
 
 Fáze 06 má nahradit pouze `handleTemporaryLoginRequest` v `components/login-form.tsx` skutečným bezpečným HTTP tokem. Musí zachovat obecnou odpověď vůči existenci e-mailu a nesmí vracet či zobrazit magic link v produkčním režimu.
 
+### Fáze 06 – Žádost o magic link
 
+- Datum dokončení: 2026-08-02
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Veřejný formulář nyní volá `POST /api/auth/magic-link`. Server znovu ověřuje oba vstupy, porovnává společný kód v konstantním čase, generuje 32bajtový kryptografický token s konfigurací řízenou krátkou platností a přes repozitář uloží jen jeho SHA-256 otisk. Úspěšná odpověď je obecná. V developmentu se odkaz vypíše do serverového výstupu a pouze při `ENABLE_DEV_MAGIC_LINK=true` se vrátí jako klikací odkaz; produkční adaptér zatím nic nedoručuje ani neodhaluje token.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `lib/auth/magic-links.ts` – serverová validace, bezpečné porovnání kódu, náhodný token, absolutní odkaz a vyměnitelný doručovací adaptér
+- `app/api/auth/magic-link/route.ts` – necachovaný HTTP endpoint s obecnými chybovými odpověďmi
+- `components/login-form.tsx` – skutečné odeslání formuláře, serverové chybové stavy a podmíněný vývojový odkaz
+- `app/globals.css` – nenápadný vzhled vývojového odkazu
+- `tests/magic-links.test.ts` – testy správného a špatného kódu, validace e-mailu, opakované žádosti, development doručení a zákazu úniku tokenu mimo development
+- `README.md` – aktuální stav projektu a postup pro lokální testování magic linku
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 06
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Porovnání společného kódu probíhá nad SHA-256 otisky pomocí `timingSafeEqual`.
+- Důvod: Přímé porovnání řetězců by mohlo odhalovat rozdíly v čase zpracování; svatební kód se přitom nikam neloguje ani neukládá.
+- Dopad na další fáze: Ověřovací route může důvěřovat tomu, že tokenový repozitář již obsahuje jen bezpečný otisk a normalizovaný e-mail.
+- Rozhodnutí: Vývojový odkaz je do odpovědi vložen pouze při současném splnění `NODE_ENV=development` a `ENABLE_DEV_MAGIC_LINK=true`.
+- Důvod: Přepínač prostředí sám nesmí umožnit únik tokenu z produkce.
+- Dopad na další fáze: Budoucí SMTP adaptér nahradí produkční no-op větev, aniž by se měnil HTTP kontrakt.
+- Rozhodnutí: Vývojový odkaz se v developmentu vypisuje do serverového logu, protože to výslovně vyžaduje fáze 06; produkce jej neloguje.
+- Důvod: Zadání zároveň zmiňuje výpis odkazu a nepřítomnost čitelného tokenu v logu. Zvolený nejmenší bezpečný výklad omezuje výpis na explicitně lokální vývoj.
+- Dopad na další fáze: Produkční logovací pravidla zůstávají bez čitelných tokenů; lokální výpis má být považován za citlivý vývojový údaj.
+
+#### Známá omezení nebo nedodělky
+
+- Route `/auth/verify`, jednorázové spotřebování tokenu, session, přesměrování a odhlášení záměrně patří do fáze 07; nyní vytvořený odkaz proto ještě nevede na hotovou stránku.
+- Produkční SMTP doručení není součástí této fáze. Produkční adaptér token nevrací ani neloguje, ale e-mail zatím fyzicky neodesílá.
+
+#### Chyby, které se objevily
+
+- Chyba: První typová kontrola odmítla testovací náhradu tokenového repozitáře, protože vracela `void` místo konkrétního dokumentu.
+- Příčina: Serverová služba byla zbytečně vázaná na přesný návratový typ repozitáře, přestože výsledek zápisu nepotřebuje.
+- Způsob opravy: Závislost nyní vyžaduje pouze metodu zápisu s výsledkem typu `unknown`, což zachovává kompatibilitu s produkčním repozitářem i jednotkovým testem.
+- Zůstává nějaké riziko: Ne.
+- Chyba: Sandbox při prvním startu vývojového serveru odmítl otevření portu `127.0.0.1:3001` (`EPERM`).
+- Příčina: Omezení sandboxu pro lokální naslouchání.
+- Způsob opravy: Start byl ověřen s povoleným lokálním síťovým přístupem.
+- Zůstává nějaké riziko: Ne; server ohlásil stav `Ready` bez nové kritické chyby.
+
+#### Provedené automatické kontroly
+
+- `pnpm typecheck` – úspěch.
+- `pnpm lint` – úspěch.
+- `pnpm test` – úspěch: 15 testů prošlo, 1 izolovaný databázový test byl očekávaně přeskočen bez `.env.test`.
+- `pnpm build` – úspěch; sestavení obsahuje dynamickou route `/api/auth/magic-link`.
+- `pnpm dev --hostname 127.0.0.1 --port 3001` – úspěch po povolení lokálního síťového přístupu; server ohlásil `Ready`.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Do necommitovaného `.env.local` nastavte běžící lokální MongoDB, platný `WEDDING_CODE`, `APP_URL=http://localhost:3000` a `ENABLE_DEV_MAGIC_LINK=true`; jednorázově spusťte `pnpm db:indexes`.
+2. Spusťte `pnpm dev` a na `/` odešlete platný e-mail se špatným kódem.
+3. Ověřte, že se zobrazí chyba u kódu a v kolekci `loginTokens` nepřibude dokument.
+4. Odešlete stejný e-mail se správným kódem. Ověřte obecnou úspěšnou zprávu, klikací vývojový odkaz a stejný odkaz v serverovém výstupu.
+5. V databázi zkontrolujte, že dokument obsahuje `tokenHash`, normalizovaný e-mail, `createdAt` a `expiresAt`, ale ne čitelné pole `token`.
+6. Nastavte `ENABLE_DEV_MAGIC_LINK=false`, restartujte development server, odešlete správný kód a ověřte, že úspěšná odpověď klikací odkaz neobsahuje.
+7. Spusťte `pnpm test`.
+
+#### Očekávaný výsledek ručního testu
+
+Špatný kód token nevytvoří. Správný kód vždy vytvoří nový token s patnáctiminutovou platností a obecnou úspěšnou zprávou, aniž by prozradil existenci účtu. Databáze obsahuje pouze otisk tokenu. Klikací odkaz je dostupný jen při explicitním development přepínači; bez něj ani v produkci se token klientovi nevrátí. Dokud nebude dokončena fáze 07, otevření odkazu ještě neprovede přihlášení.
+
+#### Poznámky pro následující fázi
+
+Fáze 07 má implementovat `/auth/verify`, předat token z query parametru repozitáři `consumeValidToken`, vytvořit session a bezpečně přesměrovat podle serverově určené role. Nesmí oslabit podmínky, za kterých endpoint fáze 06 vrací vývojový odkaz.
 
 
 

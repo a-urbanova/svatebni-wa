@@ -1,6 +1,6 @@
 # Svatební web Anna & Petr
 
-Projekt obsahuje fázi 03: vedle validované konfigurace a RSVP kontraktů má MongoDB datovou vrstvu pro magic-link tokeny, session a RSVP odpovědi. HTTP přihlášení a formulářové uživatelské rozhraní budou doplněny v navazujících fázích.
+Projekt obsahuje fázi 06: veřejný formulář na `/` bezpečně ověří společný svatební kód na serveru, vytvoří krátkodobý magic link a uloží pouze jeho SHA-256 otisk. Ověření odkazu, session a chráněné stránky budou doplněny v navazující fázi.
 
 ## Požadavky
 
@@ -14,6 +14,10 @@ Projekt obsahuje fázi 03: vedle validované konfigurace a RSVP kontraktů má M
 2. Nainstalujte závislosti příkazem `pnpm install`.
 3. Spusťte vývojový server příkazem `pnpm dev`.
 4. Otevřete [http://localhost:3000](http://localhost:3000), [http://localhost:3000/host](http://localhost:3000/host) a [http://localhost:3000/admin](http://localhost:3000/admin).
+
+### Lokální magic link
+
+Pro lokální klikací odkaz nastavte v `.env.local` `ENABLE_DEV_MAGIC_LINK=true` a spusťte aplikaci přes `pnpm dev`. Jen v režimu development se po správném kódu zobrazí klikací odkaz a současně se vypíše do serverového výstupu. V produkčním režimu se magic link nikdy nevrací klientovi ani nezapisuje do logu; současný produkční doručovací adaptér je připravené místo pro budoucí SMTP implementaci.
 
 ## Kontroly kvality
 
