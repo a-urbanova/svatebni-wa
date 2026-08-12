@@ -95,7 +95,7 @@ export class RsvpRepository {
             note: "$persons.note",
           },
         },
-        { $sort: { updatedAt: -1, ownerEmail: 1, lastName: 1, firstName: 1 } },
+        { $sort: { updatedAt: -1, lastName: 1, firstName: 1, ownerEmail: 1, id: 1 } },
       ])
       .toArray();
 

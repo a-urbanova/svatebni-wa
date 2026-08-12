@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { normalizeEmail } from "../auth/emails.ts";
-import { DIETARY_CHOICES, PERSON_TYPES } from "./types.ts";
+import { DIETARY_CHOICES, PERSON_TYPES, type AdminFilters } from "./types.ts";
 
 export const RSVP_LIMITS = {
   maxPersons: 20,
@@ -119,4 +119,5 @@ export const adminFiltersSchema = z
 export type MagicLinkRequest = z.infer<typeof magicLinkRequestSchema>;
 export type PersonInput = z.infer<typeof personSchema>;
 export type RsvpSubmission = z.infer<typeof rsvpSubmissionSchema>;
-export type AdminFiltersInput = z.infer<typeof adminFiltersSchema>;
+/** Veřejný vstup filtrů; transformace prázdného hledání nevynucuje jeho předání. */
+export type AdminFiltersInput = AdminFilters;

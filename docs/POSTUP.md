@@ -4,9 +4,9 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 09 dokončena
-- Poslední dokončená fáze: 09 – Uložení a načtení RSVP
-- Poslední aktualizace: 2026-08-12
+- Aktuální fáze: 10 dokončena
+- Poslední dokončená fáze: 10 – Admin data a souhrny
+- Poslední aktualizace: 2026-08-13
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
 - Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.2.12, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3
@@ -25,7 +25,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 07 | Ověření, session, role a odhlášení | Dokončeno | 2026-08-07 |
 | 08 | Formulář hosta – UI | Dokončeno | 2026-08-12 |
 | 09 | Uložení a načtení RSVP | Dokončeno | 2026-08-12 |
-| 10 | Admin data a souhrny | Nezahájeno | — |
+| 10 | Admin data a souhrny | Dokončeno | 2026-08-13 |
 | 11 | Admin dashboard | Nezahájeno | — |
 | 12 | Responzivita, přístupnost a stavy | Nezahájeno | — |
 | 13 | Bezpečnost a odolnost | Nezahájeno | — |
@@ -705,3 +705,73 @@ Každý host uvidí jen svou odpověď, podvržený vlastník se nepoužije, adm
 #### Poznámky pro následující fázi
 
 Fáze 10 může stavět read-only administrativní data nad `RsvpRepository.getAdminOverview` bez přidání admin mutací RSVP.
+
+### Fáze 10 – Admin data a souhrny
+
+- Datum dokončení: 2026-08-13
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Vznikl autorizovaný čtecí model administrace. `GET /api/admin/rsvps` vrací pro každou osobu samostatný řádek se všemi údaji z RSVP, e-mailem vlastníka, společnou zprávou a poslední úpravou v ISO UTC. Součástí odpovědi jsou souhrny počtu osob, dospělých, dětí a přespání. Endpoint přijímá jen omezené serverově validované filtry pro text, typ osoby, přespání a dietu, chrání se autoritativní session rolí a odpovědi mají `Cache-Control: no-store`. Neexistuje žádný admin write endpoint.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `lib/rsvp/admin-overview.ts` – čistá autorizace read modelu, převod datumů, souhrny a bezpečné čtení query filtrů
+- `app/api/admin/rsvps/route.ts` – pouze čtecí, dynamický a necachovatelný administrátorský endpoint
+- `lib/db/repositories/rsvps.ts` – stabilní řazení osob od nejnovější RSVP, poté podle jména, e-mailu a ID
+- `lib/rsvp/schemas.ts` – veřejný typ filtrů zůstává volitelný i po normalizaci prázdného hledání
+- `tests/admin-overview.test.ts` – testy serializace, souhrnů, prázdných dat, vstupních filtrů a přístupových rolí
+- `tests/db-repositories.test.ts` – bezpečná ukázková RSVP data a integrační test skutečného flatteningu, všech filtrů, kombinace a řazení
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 10
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Souhrny se počítají nad stejnými řádky, které odpovídají právě použitým filtrům.
+- Důvod: Karty administrace tak vždy popisují právě zobrazenou podmnožinu dat a nepředstírají celkový počet.
+- Dopad na další fáze: Dashboard fáze 11 může endpoint volat při změně filtrů bez vlastního přepočítávání.
+- Rozhodnutí: Řazení je `updatedAt` sestupně, poté příjmení, jméno, e-mail a stabilní ID osoby vzestupně.
+- Důvod: Nejdříve jsou vidět poslední odpovědi; pomocná kritéria zaručí opakovatelný pořádek i při shodných datech.
+- Dopad na další fáze: UI může řádky zobrazit v přijatém pořadí bez klientského třídění.
+- Rozhodnutí: Query parser odmítá neznámé i opakované parametry a hodnotu vyhledávání omezuje na 120 znaků.
+- Důvod: Uživatelský vstup se nedostane přímo do databázové konstrukce; textové hledání se v repozitáři před vytvořením regulárního výrazu escapuje.
+- Dopad na další fáze: Nový filtr vyžaduje vědomé doplnění parseru, schématu a repository dotazu.
+
+#### Známá omezení nebo nedodělky
+
+- Finální administrátorské UI, ovládání filtrů, tabulka a prázdný stav patří až do fáze 11.
+- Export, editace, mazání a stránkování nejsou v rozsahu prototypové fáze a nebyly přidány.
+
+#### Chyby, které se objevily
+
+- Chyba: Odvozený Zod typ po transformaci prázdného hledání vyžadoval klíč `search: undefined`, přestože jde o volitelný filtr.
+- Příčina: Typová inference Zodu po `transform()` neodpovídala veřejnému kontraktu `AdminFilters`.
+- Způsob opravy: Veřejný vstupní typ filtrů nyní explicitně používá doménový volitelný typ, zatímco runtime validace zůstává beze změny.
+- Zůstává nějaké riziko: Ne; typová kontrola i testy následně prošly.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 33 testů prošlo, 1 izolovaný databázový test byl při běžném příkazu očekávaně přeskočen.
+- `pnpm test:db` – úspěch: integrační databázový test prošel nad izolovanou databází a po sobě ji maže.
+- `pnpm build` – úspěch; sestavení obsahuje dynamickou route `GET /api/admin/rsvps`.
+- `pnpm dev --hostname 127.0.0.1 --port 3010` – úspěch; vývojový server nastartoval bez nové kritické chyby.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Spusťte lokální MongoDB, nastavte necommitovaný `.env.local`, jednorázově spusťte `pnpm db:indexes` a přihlaste tři testovací hosty s neosobními e-maily, například `ukazka1@example.test` až `ukazka3@example.test`.
+2. Každý host uloží RSVP; první alespoň dvě osoby, mezi nimi dospělého s přespáním a dítě bez přespání. Vyplňte i odvoz, dietu, poznámku a společnou zprávu.
+3. Přihlaste se jako `svatebniwa+anna@gmail.com` nebo `svatebniwa+petr@gmail.com` a v prohlížeči otevřete `/api/admin/rsvps`.
+4. Ručně přepočítejte řádky a porovnejte je s `summary.totalPersons`, `summary.adults`, `summary.children` a `summary.overnightStays`.
+5. Vyzkoušejte adresy s `?search=ukazka1`, `?personTypse=adult`, `?overnightStay=true` a `?dietaryChoice=vegetarian`, také kombinaci dvou filtrů. Ověřte, že se souhrny mění spolu s řádky.
+6. Zkuste neplatný či opakovaný parametr, například `?overnightStay=ano` a `?search=a&search=b`; endpoint musí vrátit HTTP 400. Jako host a bez session otevřete stejný endpoint; očekávejte postupně HTTP 403 a 401.
+7. Odešlete `PUT` nebo `POST` na `/api/admin/rsvps`; žádná metoda pro změnu dat nesmí být dostupná. Nakonec spusťte `pnpm test` a při připraveném `.env.test` i `pnpm test:db`.
+
+#### Očekávaný výsledek ručního testu
+
+Správce obdrží pouze JSON pro čtení: jeden řádek na osobu se všemi požadovanými údaji a časy v UTC. Filtry vracejí jen odpovídající osoby a souhrny přesně sedí na jejich počet. Neznámé, duplicitní nebo neplatné filtry nejsou zpracovány. Host ani nepřihlášený uživatel nezíská žádná RSVP data, zápis na admin cestě neexistuje a odpověď obsahuje hlavičku `Cache-Control: no-store`.
+
+#### Poznámky pro následující fázi
+
+Fáze 11 má zachovat serverový guard stránky `/admin` a tento read-only endpoint použít pro karty, vyhledávání, filtry a tabulku. Nemá doplňovat žádnou admin mutaci ani klientské autorizační rozhodnutí.

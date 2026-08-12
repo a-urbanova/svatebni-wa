@@ -104,6 +104,17 @@ test("repozitáře pracují s izolovanou testovací databází", { skip }, async
         needsTransport: false,
         dietaryChoice: "vegetarian",
       },
+      {
+        id: "person-2",
+        firstName: "Filip",
+        lastName: "Vzor",
+        type: "child",
+        overnightStay: false,
+        needsTransport: true,
+        transportDestination: "Testovací adresa",
+        dietaryChoice: "other",
+        dietaryDetails: "Testovací dieta",
+      },
     ],
     sharedMessage: "Těšíme se.",
   });
@@ -126,8 +137,52 @@ test("repozitáře pracují s izolovanou testovací databází", { skip }, async
     { code: 11_000 },
   );
 
-  const overview = await rsvps.getAdminOverview({ search: "HOST@EXAMPLE.CZ" });
-  assert.equal(overview.length, 1);
-  assert.equal(overview[0]?.firstName, "Anna");
+  await rsvps.upsertByOwnerEmail(
+    "second@example.test",
+    rsvpSubmissionSchema.parse({
+      persons: [
+        {
+          id: "person-3",
+          firstName: "Berta",
+          lastName: "Druhá",
+          type: "adult",
+          overnightStay: true,
+          needsTransport: false,
+          dietaryChoice: "vegan",
+        },
+      ],
+      sharedMessage: "Bezpečná ukázková data.",
+    }),
+    new Date("2026-07-31T10:02:00.000Z"),
+  );
+
+  const overview = await rsvps.getAdminOverview({});
+  assert.deepEqual(overview.map((row) => row.id), ["person-3", "person-1", "person-2"]);
+  assert.equal(overview[1]?.sharedMessage, undefined);
   assert.equal(Object.isFrozen(overview[0]), true);
+
+  assert.deepEqual(
+    (await rsvps.getAdminOverview({ search: "host@example.cz" })).map((row) => row.id),
+    ["person-1", "person-2"],
+  );
+  assert.deepEqual(
+    (await rsvps.getAdminOverview({ search: "vzor" })).map((row) => row.id),
+    ["person-2"],
+  );
+  assert.deepEqual(
+    (await rsvps.getAdminOverview({ personType: "adult" })).map((row) => row.id),
+    ["person-3", "person-1"],
+  );
+  assert.deepEqual(
+    (await rsvps.getAdminOverview({ overnightStay: false })).map((row) => row.id),
+    ["person-2"],
+  );
+  assert.deepEqual(
+    (await rsvps.getAdminOverview({ dietaryChoice: "vegan" })).map((row) => row.id),
+    ["person-3"],
+  );
+  assert.deepEqual(
+    (await rsvps.getAdminOverview({ personType: "adult", overnightStay: true })).map((row) => row.id),
+    ["person-3", "person-1"],
+  );
 });
