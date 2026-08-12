@@ -1,8 +1,20 @@
 import { InvitationSection } from "@/components/invitation";
 import { LoginForm } from "@/components/login-form";
-import { Card } from "@/components/ui";
+import { Card, StatusMessage } from "@/components/ui";
 
-export default function Home() {
+type HomePageProps = {
+  searchParams: Promise<{ auth?: string }>;
+};
+
+export default async function Home({ searchParams }: HomePageProps) {
+  const { auth } = await searchParams;
+  const authMessage =
+    auth === "invalid-link"
+      ? "Tento přihlašovací odkaz je neplatný, již použitý nebo jeho platnost vypršela. Vyžádejte si prosím nový."
+      : auth === "verification-failed"
+        ? "Přihlášení se teď nepodařilo dokončit. Vyžádejte si prosím nový odkaz později."
+        : null;
+
   return (
     <>
       <main className="page-shell page-shell-invitation">
@@ -14,6 +26,7 @@ export default function Home() {
               Zadejte e-mail a společný svatební kód, který jste obdrželi v
               pozvánce.
             </p>
+            {authMessage ? <StatusMessage tone="error">{authMessage}</StatusMessage> : null}
             <LoginForm />
           </Card>
         </div>

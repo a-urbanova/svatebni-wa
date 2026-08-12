@@ -115,6 +115,28 @@ button:disabled {
   color: var(--color-text-muted);
 }
 
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.user-bar strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.user-bar .button {
+  min-height: 2.35rem;
+  padding: 0.5rem 1rem;
+}
+
 .invitation {
   text-align: center;
 }
@@ -317,6 +339,13 @@ button:disabled {
   color: var(--color-accent);
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+@media (max-width: 36rem) {
+  .user-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .status-message {

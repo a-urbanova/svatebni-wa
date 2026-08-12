@@ -4,9 +4,9 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 06 dokončena
-- Poslední dokončená fáze: 06 – Žádost o magic link
-- Poslední aktualizace: 2026-08-02
+- Aktuální fáze: 07 dokončena
+- Poslední dokončená fáze: 07 – Ověření, session, role a odhlášení
+- Poslední aktualizace: 2026-08-07
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
 - Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.2.12, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3
@@ -22,7 +22,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 04 | Design systém a sdílená pozvánka | Dokončeno | 2026-07-31 |
 | 05 | Veřejná úvodní stránka | Dokončeno | 2026-08-02 |
 | 06 | Žádost o magic link | Dokončeno | 2026-08-02 |
-| 07 | Ověření, session, role a odhlášení | Nezahájeno | — |
+| 07 | Ověření, session, role a odhlášení | Dokončeno | 2026-08-07 |
 | 08 | Formulář hosta – UI | Nezahájeno | — |
 | 09 | Uložení a načtení RSVP | Nezahájeno | — |
 | 10 | Admin data a souhrny | Nezahájeno | — |
@@ -503,6 +503,83 @@ Veřejný formulář nyní volá `POST /api/auth/magic-link`. Server znovu ově�
 
 Fáze 07 má implementovat `/auth/verify`, předat token z query parametru repozitáři `consumeValidToken`, vytvořit session a bezpečně přesměrovat podle serverově určené role. Nesmí oslabit podmínky, za kterých endpoint fáze 06 vrací vývojový odkaz.
 
+### Fáze 07 – Ověření, session, role a odhlášení
 
+- Datum dokončení: 2026-08-07
+- Stav: Dokončeno
 
+#### Stručný popis provedených změn
 
+Route `GET /auth/verify` nyní načte token z magic linku, jedním atomickým dotazem ho spotřebuje a při úspěchu vytvoří náhodnou session. Databáze dál obsahuje pouze otisk session; čitelná hodnota se ukládá pouze do HTTP-only cookie. Chybějící, neplatný, použitý i expirovaný token se stejným bezpečným způsobem vrací na úvodní stránku bez session. Role se při vytvoření i každém načtení session odvozuje z normalizovaného e-mailu na serveru. Serverové stránky `/host` a `/admin` přesměrují nepřihlášené na `/` a uživatele s opačnou rolí na správnou chráněnou adresu. Obě dočasné stránky zobrazují přihlášený e-mail a funkční odhlášení.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `app/auth/verify/route.ts` – necachovaný callback magic linku, vytvoření cookie a bezpečná přesměrování
+- `app/api/auth/logout/route.ts` – zneplatnění session v databázi, odstranění cookie a návrat na `/`
+- `lib/auth/session-flow.ts` – čistá testovatelná logika spotřeby tokenu, role, přesměrování a zneplatnění session
+- `lib/auth/sessions.ts` – serverový helper pro načtení aktuální session z cookie a databáze
+- `lib/auth/session-cookie.ts` – jednotné bezpečné atributy session cookie pro vytvoření i smazání
+- `app/host/page.tsx`, `app/admin/page.tsx` – serverové route guards a dočasné přihlášené rozhraní
+- `components/user-bar.tsx`, `app/globals.css` – uživatelská lišta s e-mailem a odhlášením ve stávajícím vizuálním stylu
+- `app/page.tsx` – bezpečné sdělení o neplatném nebo nepodařeném ověření odkazu
+- `tests/sessions.test.ts` – testy role, přesměrování, jednorázového a expirovaného tokenu, odhlášení a cookie
+- `README.md` – aktuální lokální postup pro ověření odkazu, chráněné stránky a odhlášení
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 07
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Magic link se spotřebuje před vytvořením session.
+- Důvod: `consumeValidToken` je atomický; dva souběžné požadavky proto nemohou vytvořit dvě session z téhož odkazu.
+- Dopad na další fáze: Když po spotřebování selže zápis session, odkaz se z bezpečnostních důvodů neobnoví a uživatel si vyžádá nový.
+- Rozhodnutí: Autoritativní role se při každém načtení session počítá z normalizovaného e-mailu, ne z klienta ani jen z uloženého pole `role`.
+- Důvod: Pevný seznam správců zůstává jediným zdrojem oprávnění a databázové pole nemůže rozšířit klientské oprávnění.
+- Dopad na další fáze: Každý nový chráněný Route Handler musí před čtením či zápisem použít `getCurrentSession()` a serverovou kontrolu očekávané role.
+- Rozhodnutí: Cookie používá `HttpOnly`, `SameSite=Lax`, cestu `/` a v produkci `Secure`; její smazání používá stejnou politiku pro dané prostředí.
+- Důvod: Cookie není dostupná běžnému JavaScriptu, omezuje CSRF při běžné navigaci a funguje i přes lokální HTTP development.
+- Dopad na další fáze: API pro RSVP musí identitu vlastníka vždy převzít z této session, nikdy z těla požadavku.
+
+#### Známá omezení nebo nedodělky
+
+- Formulář RSVP, jeho API a administrátorská data záměrně nejsou součástí této fáze.
+- Produkční SMTP doručení magic linku zůstává záměrně neimplementované; produkční větev token nevrací ani neloguje.
+
+#### Chyby, které se objevily
+
+- Chyba: Jednotkový test při prvním pokusu nemohl importovat `next/headers` v samostatném Node test runneru.
+- Příčina: Testovatelná doménová logika byla smíchaná se serverovým Next.js čtením cookie.
+- Způsob opravy: Čistá logika je v `lib/auth/session-flow.ts`; `lib/auth/sessions.ts` nyní obsahuje pouze Next.js adaptér pro cookie a repozitář.
+- Zůstává nějaké riziko: Ne; TypeScript, lint, testy i produkční build prošly.
+
+#### Provedené automatické kontroly
+
+- `pnpm typecheck` – úspěch.
+- `pnpm lint` – úspěch.
+- `pnpm test` – úspěch: 20 testů prošlo, 1 databázový test byl očekávaně přeskočen bez integračního přepínače.
+- `pnpm test:db` – úspěch nad izolovanou databází z `.env.test`; testovací databáze byla po testu smazána.
+- `pnpm build` – úspěch; sestavení obsahuje dynamické routes `/auth/verify`, `/api/auth/logout`, `/host` a `/admin`.
+- `pnpm dev --hostname 127.0.0.1 --port 3002` a lokální HTTP požadavky – úspěch; `/` odpověděla HTTP 200 a nepřihlášený vstup na `/host` HTTP 307 s `location: /`.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Do necommitovaného `.env.local` nastavte běžící MongoDB, platný `WEDDING_CODE`, `APP_URL=http://localhost:3000` a `ENABLE_DEV_MAGIC_LINK=true`; jednorázově spusťte `pnpm db:indexes`.
+2. Spusťte `pnpm dev`, na `/` vyžádejte link pro běžný e-mail a otevřete vývojový odkaz.
+3. Ověřte přesměrování na `/host`, zobrazení stejného normalizovaného e-mailu a v DevTools v úložišti cookies ověřte, že `svatebni_session` má `HttpOnly`, `SameSite=Lax` a není dostupná z běžného JavaScriptu.
+4. Otevřete stejný odkaz podruhé a ověřte návrat na `/` s obecnou zprávou o neplatném, použitém nebo expirovaném odkazu.
+5. Vyžádejte odkaz postupně pro `svatebniwa+anna@gmail.com` a `svatebniwa+petr@gmail.com`; každý musí vést na `/admin`.
+6. Jako host ručně otevřete `/admin` a jako správce `/host`; vždy ověřte přesměrování na příslušnou správnou chráněnou stránku.
+7. Klikněte na `Odhlásit se`, pak ručně otevřete `/host` nebo `/admin` a ověřte návrat na `/`.
+8. Spusťte `pnpm test` a volitelně při připravené izolované `.env.test` také `pnpm test:db`.
+
+#### Očekávaný výsledek ručního testu
+
+Platný magic link vytvoří právě jednu session a přesměruje uživatele podle role. Starý, neplatný nebo expirovaný link nikdy nevytvoří session ani neprozradí důvod odmítnutí. Chráněné stránky nelze obejít zadáním URL, e-mail a odhlášení jsou viditelné pouze po přihlášení a odhlášení smaže databázovou session i cookie. Automatické testy skončí úspěšně.
+
+#### Poznámky pro následující fázi
+
+Fáze 08 může nahradit placeholder `/host` RSVP formulářem, ale musí zachovat serverový guard a odvozovat vlastníka budoucích dat výhradně z `getCurrentSession()`. Do `/admin` zatím nepřidávat data ani formulář; patří do pozdějších fází.
+
+#### Dodatečná úprava datového modelu
+
+- 2026-08-12 – Pole `sessions.role` bylo odstraněno z TypeScript dokumentu, session repozitáře, vytváření session a integračních testů. Následně bylo `$unset` odstraněno také ze čtyř tehdy existujících dokumentů lokální databáze; následná kontrola potvrdila nula dokumentů s tímto polem.
+- Důvod: Role je jediným zdrojem pravdy serverové funkce `roleForEmail()` nad normalizovaným e-mailem a pevným seznamem správců. Ukládání druhého, neautoritativního snapshotu nepřinášelo žádnou potřebnou funkci v navazujících fázích 08–14.
+- Dopad: Session obsahují pouze hash tokenu, normalizovaný e-mail a časy. `getCurrentSession()` vrací odvozenou roli pro autorizaci, ale databáze ji neperzistuje. Stávající snapshot `backups/mongodb-snapshot-2026-08-12T120000` byl vytvořen před změnou a umožňuje návrat ke starším dokumentům se snapshotem role.

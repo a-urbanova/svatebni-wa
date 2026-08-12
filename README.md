@@ -1,6 +1,6 @@
 # Svatební web Anna & Petr
 
-Projekt obsahuje fázi 06: veřejný formulář na `/` bezpečně ověří společný svatební kód na serveru, vytvoří krátkodobý magic link a uloží pouze jeho SHA-256 otisk. Ověření odkazu, session a chráněné stránky budou doplněny v navazující fázi.
+Projekt obsahuje fázi 07: magic link se na serveru atomicky spotřebuje, vytvoří se session v HTTP-only cookie a uživatel je podle serverově určené role přesměrován na `/host` nebo `/admin`. Chráněné stránky ověřují session na serveru a obsahují odhlášení.
 
 ## Požadavky
 
@@ -13,11 +13,13 @@ Projekt obsahuje fázi 06: veřejný formulář na `/` bezpečně ověří spole
 1. Zkopírujte `.env.example` do necommitovaného souboru `.env.local` a vyplňte všechny povinné hodnoty včetně `MONGODB_URI` a `MONGODB_DB_NAME`. Konfigurace se ověří při prvním serverovém použití; hodnoty z `.env.local` se nesmí commitovat.
 2. Nainstalujte závislosti příkazem `pnpm install`.
 3. Spusťte vývojový server příkazem `pnpm dev`.
-4. Otevřete [http://localhost:3000](http://localhost:3000), [http://localhost:3000/host](http://localhost:3000/host) a [http://localhost:3000/admin](http://localhost:3000/admin).
+4. Otevřete [http://localhost:3000](http://localhost:3000). Adresy `/host` a `/admin` bez platné session přesměrují zpět na úvodní stránku.
 
 ### Lokální magic link
 
-Pro lokální klikací odkaz nastavte v `.env.local` `ENABLE_DEV_MAGIC_LINK=true` a spusťte aplikaci přes `pnpm dev`. Jen v režimu development se po správném kódu zobrazí klikací odkaz a současně se vypíše do serverového výstupu. V produkčním režimu se magic link nikdy nevrací klientovi ani nezapisuje do logu; současný produkční doručovací adaptér je připravené místo pro budoucí SMTP implementaci.
+Pro lokální klikací odkaz nastavte v `.env.local` `ENABLE_DEV_MAGIC_LINK=true` a spusťte aplikaci přes `pnpm dev`. Jen v režimu development se po správném kódu zobrazí klikací odkaz a současně se vypíše do serverového výstupu. Otevření platného odkazu ho právě jednou spotřebuje, vytvoří sedmidenní session (podle `SESSION_TTL_DAYS`) a přesměruje běžný e-mail na `/host`; dvě adresy definované v zadání přesměruje na `/admin`. Odkaz použitý podruhé nebo po expiraci se bezpečně vrátí na úvodní stránku s obecnou zprávou. V produkčním režimu se magic link nikdy nevrací klientovi ani nezapisuje do logu; současný produkční doručovací adaptér je připravené místo pro budoucí SMTP implementaci.
+
+Session cookie má atributy `HttpOnly`, `SameSite=Lax` a cestu `/`; atribut `Secure` se zapne pouze v produkci. Na `/host` i `/admin` je k dispozici odhlášení, které odstraní session z databáze i cookie. Role je při každém serverovém načtení znovu určena z normalizovaného e-mailu.
 
 ## Kontroly kvality
 

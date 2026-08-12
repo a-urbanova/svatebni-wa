@@ -10,14 +10,12 @@ export type Session = Omit<SessionDocument, "sessionHash">;
 export type CreateSessionInput = {
   sessionToken: string;
   email: string;
-  role: SessionDocument["role"];
   expiresAt: Date;
 };
 
 function withoutHash(document: SessionDocument): Session {
   return {
     email: document.email,
-    role: document.role,
     createdAt: document.createdAt,
     expiresAt: document.expiresAt,
   };
@@ -35,7 +33,6 @@ export class SessionRepository {
     const document: SessionDocument = {
       sessionHash: hashSecret(input.sessionToken),
       email: normalizeEmail(input.email),
-      role: input.role,
       createdAt: now,
       expiresAt: input.expiresAt,
     };

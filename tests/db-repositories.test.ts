@@ -82,14 +82,13 @@ test("repozitáře pracují s izolovanou testovací databází", { skip }, async
   await sessions.create({
     sessionToken: readableSessionToken,
     email: "HOST@EXAMPLE.CZ",
-    role: "guest",
     expiresAt: new Date("2026-08-07T10:00:00.000Z"),
   }, now);
   const rawSession = await getCollections(database).sessions.findOne({ email: "host@example.cz" });
   assert.ok(rawSession);
   assert.equal("sessionToken" in rawSession, false);
   assert.notEqual(rawSession.sessionHash, readableSessionToken);
-  assert.equal((await sessions.findValidByToken(readableSessionToken, now))?.role, "guest");
+  assert.equal((await sessions.findValidByToken(readableSessionToken, now))?.email, "host@example.cz");
   assert.equal(await sessions.invalidate(readableSessionToken), true);
   assert.equal(await sessions.findValidByToken(readableSessionToken, now), null);
 

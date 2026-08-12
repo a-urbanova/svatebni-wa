@@ -1,7 +1,5 @@
 import type { Person, Rsvp } from "../rsvp/types.ts";
 
-export type UserRole = "guest" | "admin";
-
 export type LoginTokenDocument = {
   tokenHash: string;
   email: string;
@@ -13,7 +11,6 @@ export type LoginTokenDocument = {
 export type SessionDocument = {
   sessionHash: string;
   email: string;
-  role: UserRole;
   createdAt: Date;
   expiresAt: Date;
 };
