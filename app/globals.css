@@ -417,6 +417,257 @@ button:disabled {
   text-align: center;
 }
 
+.page-shell-invitation .user-bar {
+  margin-top: var(--space-6);
+  margin-bottom: clamp(3.5rem, 8vw, 5.5rem);
+  padding: 0.7rem 1.3rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+
+.page-shell-invitation .user-bar .button {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.7rem;
+  border-color: transparent;
+  font-size: 0.68rem;
+}
+
+.host-form-section {
+  padding-bottom: var(--space-8);
+}
+
+.host-form-heading {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.host-form-heading h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(2.2rem, 6vw, 3rem);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.host-form-heading p {
+  max-width: 38rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.host-rsvp-form {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.host-form-loading {
+  min-height: 13rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.session-expired-help {
+  justify-self: start;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.session-expired-help a,
+.retry-load-button {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.retry-load-button {
+  border: 0;
+  background: transparent;
+  font-size: 0.92rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.person-card {
+  position: relative;
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: clamp(1.5rem, 5vw, 2.4rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.person-card legend {
+  padding-right: var(--space-3);
+  color: var(--color-text);
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+}
+
+.remove-person-button {
+  position: absolute;
+  top: 1.3rem;
+  right: 1.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-transform: uppercase;
+}
+
+.remove-person-button:not(:disabled):hover {
+  color: var(--color-error);
+}
+
+.host-rsvp-form .form-field {
+  gap: var(--space-2);
+}
+
+.host-rsvp-form input[type="text"],
+.host-rsvp-form textarea,
+.host-rsvp-form select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.host-rsvp-form input[type="text"] {
+  min-height: 2.9rem;
+  padding: 0.45rem 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.host-rsvp-form textarea,
+.host-rsvp-form select {
+  padding: 0.75rem 0.85rem;
+}
+
+.host-rsvp-form textarea {
+  resize: vertical;
+}
+
+.host-rsvp-form select {
+  min-height: 3rem;
+  appearance: auto;
+}
+
+.host-rsvp-form input::placeholder,
+.host-rsvp-form textarea::placeholder {
+  color: #a19590;
+  opacity: 1;
+}
+
+.host-rsvp-form input[type="text"]:hover,
+.host-rsvp-form textarea:hover,
+.host-rsvp-form select:hover {
+  border-color: var(--color-accent-light);
+}
+
+.host-rsvp-form input[type="text"]:focus-visible,
+.host-rsvp-form textarea:focus-visible,
+.host-rsvp-form select:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.host-rsvp-form input[aria-invalid="true"],
+.host-rsvp-form textarea[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.field-label-optional {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.person-name-inputs,
+.person-options-row {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.person-name-inputs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.person-options-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+}
+
+.choice-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.choice-control input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.add-person-button {
+  min-height: 3.1rem;
+  border: 1px dashed var(--color-accent-light);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.add-person-button span {
+  font-size: 1.15rem;
+  vertical-align: -0.08em;
+}
+
+.add-person-button:not(:disabled):hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.host-shared-message-field {
+  margin-top: var(--space-2);
+}
+
+.host-form-submit {
+  width: 100%;
+  min-height: 3.35rem;
+  margin-top: var(--space-2);
+}
+
 @media (max-width: 40rem) {
   .page-shell {
     padding: var(--space-7) var(--space-4);
@@ -437,6 +688,22 @@ button:disabled {
 
   .section-divider {
     gap: var(--space-3);
+  }
+
+  .page-shell-invitation .user-bar {
+    align-items: center;
+    flex-direction: row;
+    padding: 0.6rem 0.85rem 0.6rem 1rem;
+  }
+
+  .user-bar p {
+    overflow-wrap: anywhere;
+  }
+
+  .person-name-inputs,
+  .person-options-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
   }
 }
 

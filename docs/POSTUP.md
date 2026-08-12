@@ -4,9 +4,9 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 07 dokončena
-- Poslední dokončená fáze: 07 – Ověření, session, role a odhlášení
-- Poslední aktualizace: 2026-08-07
+- Aktuální fáze: 09 dokončena
+- Poslední dokončená fáze: 09 – Uložení a načtení RSVP
+- Poslední aktualizace: 2026-08-12
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
 - Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.2.12, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3
@@ -23,8 +23,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 05 | Veřejná úvodní stránka | Dokončeno | 2026-08-02 |
 | 06 | Žádost o magic link | Dokončeno | 2026-08-02 |
 | 07 | Ověření, session, role a odhlášení | Dokončeno | 2026-08-07 |
-| 08 | Formulář hosta – UI | Nezahájeno | — |
-| 09 | Uložení a načtení RSVP | Nezahájeno | — |
+| 08 | Formulář hosta – UI | Dokončeno | 2026-08-12 |
+| 09 | Uložení a načtení RSVP | Dokončeno | 2026-08-12 |
 | 10 | Admin data a souhrny | Nezahájeno | — |
 | 11 | Admin dashboard | Nezahájeno | — |
 | 12 | Responzivita, přístupnost a stavy | Nezahájeno | — |
@@ -583,3 +583,125 @@ Fáze 08 může nahradit placeholder `/host` RSVP formulářem, ale musí zachov
 - 2026-08-12 – Pole `sessions.role` bylo odstraněno z TypeScript dokumentu, session repozitáře, vytváření session a integračních testů. Následně bylo `$unset` odstraněno také ze čtyř tehdy existujících dokumentů lokální databáze; následná kontrola potvrdila nula dokumentů s tímto polem.
 - Důvod: Role je jediným zdrojem pravdy serverové funkce `roleForEmail()` nad normalizovaným e-mailem a pevným seznamem správců. Ukládání druhého, neautoritativního snapshotu nepřinášelo žádnou potřebnou funkci v navazujících fázích 08–14.
 - Dopad: Session obsahují pouze hash tokenu, normalizovaný e-mail a časy. `getCurrentSession()` vrací odvozenou roli pro autorizaci, ale databáze ji neperzistuje. Stávající snapshot `backups/mongodb-snapshot-2026-08-12T120000` byl vytvořen před změnou a umožňuje návrat ke starším dokumentům se snapshotem role.
+
+### Fáze 08 – Formulář hosta – UI
+
+- Datum dokončení: 2026-08-12
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Chráněná stránka `/host` nyní zachovává serverový guard, sdílenou pozvánku i odhlášení a doplňuje je o kompletní lokální RSVP formulář. Formulář začíná jednou osobou, bezpečně pracuje se stabilními identifikátory při přidání a odebrání a vždy ponechá alespoň jednu osobu. Každá osoba obsahuje jméno, příjmení, typ, přespání, odvoz, podmíněný cíl odvozu, dietu, podmíněné upřesnění jiné diety a volitelnou poznámku; samostatně je dostupná volitelná společná zpráva. Klientská validace používá sdílené Zod schéma a chyby zobrazí přímo u příslušných polí. Odeslání je pouze simulované, blokuje dvojí kliknutí a po úspěšné validaci pravdivě hlásí, že formulář je připraven k uložení v další fázi.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `app/host/page.tsx` – nahradil placeholder za formulář při zachování serverové ochrany a sdílených částí stránky
+- `components/host-rsvp-form.tsx` – přístupný dynamický hostovský formulář s lokálním stavem, podmíněnými poli a simulačním stavem odeslání
+- `components/host-rsvp-form-state.ts` – čistá řídicí logika návrhu, stabilních identifikátorů, seznamu osob a převodu chyb validace
+- `app/globals.css` – vzhled hostovského layoutu, informační lišty, karet osob, voleb a responzivní rozložení formuláře
+- `tests/host-rsvp-form.test.ts` – testy přidání/odebrání, podmíněných polí a chyb klientské validace formuláře
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 08
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Formulář ve fázi 08 používá čistě lokální stav a nevolá RSVP API.
+- Důvod: Uložení i načtení MongoDB výslovně patří až do fáze 09.
+- Dopad na další fáze: Fáze 09 nahradí simulované potvrzení načtením a uložením přes autorizovaný serverový endpoint, aniž by měnila strukturu hodnot nebo sdílené schéma.
+- Rozhodnutí: Osoby dostávají při vytvoření `crypto.randomUUID()` a formulář je v Reactu klíčován tímto ID.
+- Důvod: Odebrání prostřední osoby nesmí přehodit rozepsané hodnoty ostatních osob.
+- Dopad na další fáze: Uložené osoby mají nadále používat totéž stabilní ID.
+- Rozhodnutí: Testy pokrývají řídicí logiku formulářové komponenty bez nové DOM testovací závislosti.
+- Důvod: Stávající Node test runner nemá DOM prostředí; čistá logika je současně přímo použitá komponentou a rychle ověřitelná.
+- Dopad na další fáze: Pokud bude později zavedeno E2E prostředí, má doplnit interakci přes skutečný prohlížeč, nikoli nahradit tyto rychlé testy.
+
+#### Známá omezení nebo nedodělky
+
+- Formulář zatím nenačítá ani neukládá odpověď do MongoDB a neobsahuje serverové chyby, konflikty ani stav načítání; patří do fáze 09.
+- Simulované odeslání pouze ověří vstup a zobrazí vývojové potvrzení. Nevytváří žádná data ani nenaznačuje jejich uložení.
+
+#### Chyby, které se objevily
+
+- Chyba: První běh nového testu nemohl v samostatném Node runneru vyřešit alias `@/lib`.
+- Příčina: Alias Next.js není nakonfigurovaný pro přímé spuštění Node testů.
+- Způsob opravy: Čistá řídicí logika formuláře používá pro sdílené schéma a typy relativní importy s příponou `.ts`, stejně jako existující testovatelná doménová vrstva.
+- Zůstává nějaké riziko: Ne; typová kontrola, lint, testy i produkční build po opravě prošly.
+
+#### Provedené automatické kontroly
+
+- `pnpm typecheck` – úspěch.
+- `pnpm lint` – úspěch.
+- `pnpm test` – úspěch: 23 testů prošlo, 1 databázový test byl očekávaně přeskočen bez integračního přepínače.
+- `pnpm build` – úspěch; produkční sestavení obsahuje dynamickou chráněnou route `/host`.
+- `pnpm dev --hostname 127.0.0.1 --port 3003` – úspěch; vývojový server nastartoval a ohlásil stav `Ready` bez nové kritické chyby.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Přihlaste se jako běžný host a otevřete `/host`; ověřte pozvánku, e-mail v informační liště a odhlášení.
+2. Zkontrolujte nadpis „Vaše odpověď“, vysvětlení a termín `1. 8. 2026`.
+3. Vyplňte první osobu, přidejte tři osoby, vyplňte každé jiné jméno, odeberte prostřední a ověřte, že hodnoty zbývajících osob zůstaly správně přiřazené.
+4. U osoby zvolte „Ano, potřebuji odvoz“, ověřte zobrazení cíle, potom volbu zrušte a ověřte, že skryté pole nezpůsobuje chybu.
+5. Zvolte dietu „Jiná“, ověřte zobrazení upřesnění a při prázdném upřesnění odešlete formulář.
+6. Zkuste odstranit poslední zbývající osobu; tlačítko pro odebrání se nesmí zobrazit.
+7. Odešlete neplatný formulář a ověřte české chyby u polí. Poté doplňte povinné údaje a odešlete platný formulář; během krátké kontroly znovu klikněte na tlačítko.
+8. Ověřte layout přibližně na 360, 768 a 1440 px a spusťte `pnpm test`.
+
+#### Očekávaný výsledek ručního testu
+
+Pozvánka, přihlášený e-mail a odhlášení jsou viditelné. Formulář je čitelný a ovladatelný na mobilu, tabletu i desktopu bez horizontálního posunu stránky. Podmíněná pole se zobrazují jen pro odpovídající volbu, hodnoty osob se při změně seznamu nezamění, poslední osoba nelze odstranit a chyby jsou srozumitelně propojené s poli. Platné odeslání zablokuje dvojí kliknutí a skončí pouze hlášením „Formulář je připraven k uložení v další fázi“; žádná data se zatím neukládají. Testy skončí úspěšně.
+
+#### Poznámky pro následující fázi
+
+Fáze 09 musí zachovat klientskou strukturu a stabilní ID osob, přidat autorizované načtení a uložení vlastní RSVP odpovědi a nahradit simulované potvrzení pravdivými loading, success a error stavy. Vlastník odpovědi se musí vždy odvozovat výhradně ze serverové session.
+
+### Fáze 09 – Uložení a načtení RSVP
+
+- Datum dokončení: 2026-08-12
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Hostovský formulář nyní přes zabezpečené `GET`/`PUT /api/rsvp` načítá a ukládá pouze odpověď aktuálního běžného hosta. Vlastník se bere výhradně ze serverové session, celý payload znovu validuje striktní sdílené schéma a neznámá pole včetně podvrženého `ownerEmail` jsou odmítnuta. Formulář ukazuje načítání, předvyplnění nebo prázdnou osobu, potvrzení s českým časem uložení, chybu s opakováním a bezpečný návrat na přihlášení při vypršení session bez ztráty rozepsaných hodnot.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `app/api/rsvp/route.ts` – necachovatelné autorizované načtení a uložení, admina výslovně odmítá
+- `lib/rsvp/host-rsvp.ts` – testovatelná kontrola role, validace, vlastnictví a serializace
+- `components/host-rsvp-form.tsx` a `components/host-rsvp-form-state.ts` – připojení formuláře, stavy a převod uložených dat na návrh
+- `app/globals.css` – vzhled loadingu a obnovy po chybě
+- `tests/host-rsvp-api.test.ts` – integrační testy vytvoření, aktualizace, izolace vlastníků, podvržení e-mailu, neplatných dat, nepřihlášení a admina
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 09
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: `ownerEmail` se odmítá jako neznámé pole.
+- Důvod: Vlastníka nikdy nesmí určovat klient a striktní validace bezpečně odmítne i další neznámá data.
+- Dopad na další fáze: Admin data budou mít samostatné read-only rozhraní; `/api/rsvp` zůstává jen pro hosta.
+
+#### Známá omezení nebo nedodělky
+
+- Admin read model, souhrny a dashboard patří do fází 10 a 11. Historie změn a řešení souběžné editace jsou mimo rozsah této fáze.
+
+#### Chyby, které se objevily
+
+- Chyba: Lint vyžadoval asynchronní zahájení načítání a `Link` pro interní navigaci.
+- Způsob opravy: Počáteční fetch se plánuje microtaskem a přihlášení používá `next/link`.
+
+#### Provedené automatické kontroly
+
+- `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:db` a `pnpm build` – úspěch při původním provedení fáze; po opětovném aplikování budou spuštěny znovu.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Přihlaste nového hosta, vyplňte dvě osoby a uložte odpověď.
+2. Obnovte stránku a po novém přihlášení stejným e-mailem ověřte předvyplnění.
+3. Přihlaste jiný e-mail a ověřte samostatný prázdný formulář.
+4. Do JSON požadavku přidejte cizí `ownerEmail`; route musí odmítnout změnu.
+5. Jako admin zkuste `/host` a `/api/rsvp`; admin nesmí RSVP měnit.
+
+#### Očekávaný výsledek ručního testu
+
+Každý host uvidí jen svou odpověď, podvržený vlastník se nepoužije, admin route nemůže použít a chybové stavy nemažou formulář.
+
+#### Poznámky pro následující fázi
+
+Fáze 10 může stavět read-only administrativní data nad `RsvpRepository.getAdminOverview` bez přidání admin mutací RSVP.
