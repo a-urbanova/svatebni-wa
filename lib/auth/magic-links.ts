@@ -28,10 +28,6 @@ export type MagicLinkRequestOutcome =
       kind: "invalid_input";
       message: string;
       fieldErrors: Partial<Record<"email" | "weddingCode", string>>;
-    }
-  | {
-      kind: "invalid_wedding_code";
-      message: string;
     };
 
 type MagicLinkRequestDependencies = {
@@ -109,8 +105,8 @@ export async function requestMagicLink(
 
   if (!compareWeddingCode(parsedPayload.data.weddingCode, env.WEDDING_CODE)) {
     return {
-      kind: "invalid_wedding_code",
-      message: "Zadaný společný svatební kód není správný.",
+      kind: "success",
+      message: SUCCESS_MESSAGE,
     };
   }
 

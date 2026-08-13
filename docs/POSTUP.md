@@ -4,8 +4,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 12 dokončena
-- Poslední dokončená fáze: 12 – Responzivita, přístupnost a stavy
+- Aktuální fáze: 13 dokončena
+- Poslední dokončená fáze: 13 – Bezpečnost a odolnost
 - Poslední aktualizace: 2026-08-13
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
@@ -28,7 +28,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 10 | Admin data a souhrny | Dokončeno | 2026-08-13 |
 | 11 | Admin dashboard | Dokončeno | 2026-08-13 |
 | 12 | Responzivita, přístupnost a stavy | Dokončeno | 2026-08-13 |
-| 13 | Bezpečnost a odolnost | Nezahájeno | — |
+| 13 | Bezpečnost a odolnost | Dokončeno | 2026-08-13 |
 | 14 | Testy a finální akceptace | Nezahájeno | — |
 
 Povolené stavy: `Nezahájeno`, `Probíhá`, `Dokončeno`, `Blokováno`.
@@ -49,6 +49,7 @@ Sem zapisujte rozhodnutí, která ovlivňují více fází. U každého uveďte 
 Sem zapisujte jen skutečně známé nedodělky, kompromisy nebo otázky.
 
 - Lokální systémová cesta neobsahuje příkazy `node` ani `npm`; ověřený runtime je dostupný v prostředí Codex. Pro běžné lokální spuštění je nutné mít Node.js a pnpm nainstalované v cestě.
+- Rate limit žádostí o magic link je záměrně in-memory a platí jen v jednom procesu: restart jej vymaže a více instancí nesdílí stav. Pro produkční nasazení je nutný sdílený limiter a důvěryhodně sanitizovaná hlavička s IP adresou na reverzní proxy.
 
 ---
 
@@ -904,3 +905,85 @@ Obsah stránky se vodorovně neposunuje, dlouhé texty layout nerozbijí a tabul
 #### Poznámky pro následující fázi
 
 Fáze 13 musí zachovat obecné uživatelské chybové zprávy, ochranu tajných hodnot a serverovou autorizaci.
+
+### Fáze 13 – Bezpečnost a odolnost
+
+- Datum dokončení: 2026-08-13
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Bylo provedeno cílené bezpečnostní review všech existujících route handlerů. Role i vlastník RSVP zůstávají určované výhradně serverovou session a striktní RSVP schema nadále odmítá podvržený `ownerEmail`. Magic-link endpoint nyní pro platný i neplatný společný kód vrací stejnou obecnou odpověď; neplatný kód přitom nevytvoří ani nedoručí token. Přibyl lokální in-memory rate limit pěti žádostí za 15 minut současně podle IP a normalizovaného e-mailu, přičemž do paměti ukládá pouze jejich SHA-256 otisky.
+
+Všechny mutace (`POST /api/auth/magic-link`, `PUT /api/rsvp`, `POST /api/auth/logout`) vyžadují přesný `Origin` shodný s `APP_URL`; doplňuje tak `HttpOnly`, `SameSite=Lax` session cookie. Citlivé API odpovědi i přesměrování ověření/odhlášení mají `no-store`; ověřovací route po úspěchu i chybě přesměruje bez tokenu v cílové URL a zakazuje předání referreru. Chráněné stránky v produkčním režimu vracejí `private, no-store`. Konfigurace přidává kompatibilní hlavičky proti framingu, sniffingu a zbytečným oprávněním prohlížeče.
+
+Kontrola závislostí našla zranitelné tranzitivní verze `sharp`, `postcss` a `nanoid` přes Next.js 16.2.12. Next.js a `eslint-config-next` byly aktualizovány na 16.3.0; následný audit již nehlásí známé zranitelnosti.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `lib/auth/request-security.ts` – testovatelný fixed-window limiter, získání lokální IP a kontrola originu mutací
+- `app/api/auth/magic-link/route.ts` – origin guard, limit IP/e-mail, obecná odpověď a `Retry-After`
+- `app/api/rsvp/route.ts`, `app/api/auth/logout/route.ts` – origin guard pro všechny session mutace; odhlášení má necachovatelný redirect
+- `app/auth/verify/route.ts` – necachovatelné redirecty bez refereru; token zůstává pouze ve vstupní URL
+- `lib/auth/magic-links.ts`, `components/login-form.tsx` – obecná reakce na neplatný společný kód a typy stavů API
+- `next.config.ts` – bezpečnostní hlavičky a produkční `no-store` pro `/host` a `/admin`
+- `tests/request-security.test.ts`, `tests/magic-links.test.ts`, `tests/sessions.test.ts` – regrese limiteru, originu, obecné odpovědi, expirace a zneplatnění session
+- `package.json`, `pnpm-lock.yaml` – aktualizace Next.js a ESLint konfigurace na 16.3.0 kvůli opraveným tranzitivním závislostem
+- `AGENTS.md`, `CLAUDE.md` – pomocné pokyny automaticky vytvořené Next.js 16 pro nástroje podporující agenty
+- `docs/POSTUP.md` – tento pravdivý záznam fáze 13
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Limit je pět požadavků za 15 minut a rozhoduje se před přístupem k databázi podle obou klíčů IP/e-mail.
+- Důvod: Zpomalí automatizované zneužití i střídání adres nebo e-mailů bez nové externí infrastruktury.
+- Dopad na další fáze: Produkční horizontální škálování musí limiter nahradit sdíleným úložištěm; aktuální řešení je vhodné jen pro lokální prototyp.
+- Rozhodnutí: Mutující session endpointy požadují přesný `Origin`, chybějící origin se odmítá.
+- Důvod: SameSite=Lax je další vrstva, ale samotná cookie nemá být jedinou ochranou před cross-site požadavky.
+- Dopad na další fáze: Budoucí legitimní klient mutující data musí běžet pod `APP_URL` nebo získat samostatně navržený CSRF mechanismus.
+- Rozhodnutí: Neplatný společný kód vrací stejnou obecnou odpověď jako úspěšná žádost, aniž vytvoří token.
+- Důvod: Běžná odpověď neprozradí, který ověřovaný údaj selhal, a zůstává pravdivá („pokud jsou údaje v pořádku“).
+- Dopad na další fáze: UI nesmí odvozovat platnost kódu z odpovědi endpointu.
+
+#### Známá omezení nebo nedodělky
+
+- Rate limit je lokální pro jeden proces, resetuje se po restartu a u více instancí nefunguje globálně. Při produkční proxy musí být `X-Forwarded-For` sanitizováno důvěryhodnou infrastrukturou.
+- Vývojový magic link je nadále záměrně viditelný a zalogovaný pouze při současném `NODE_ENV=development` a `ENABLE_DEV_MAGIC_LINK=true`; produkční větev jej nikam nevrací ani neloguje. Produkční SMTP doručení je mimo rozsah prototypu.
+- Nebyla přidána enterprise WAF, distribuovaný limiter ani auditní systém; nepatří do této fáze.
+
+#### Chyby, které se objevily
+
+- Chyba: První varianta nového limiteru používala TypeScript parameter properties, které vestavěný Node test runner v režimu strip-only nepodporuje.
+- Příčina: Test runner nepřekládá tento TypeScript konstrukční zápis.
+- Způsob opravy: Privátní pole se deklarují explicitně a nastavují v těle konstruktoru.
+- Zůstává nějaké riziko: Ne; lint, TypeScript i všechny testy následně prošly.
+- Chyba: První audit nemohl v sandboxu přeložit doménu registru npm.
+- Příčina: Síťový přístup sandboxu je omezený.
+- Způsob opravy: Audit byl opakován s povoleným přístupem k registru; nálezy byly aktualizací vyřešeny a závěrečný audit je čistý.
+- Zůstává nějaké riziko: Žádné známé zranitelnosti v produkčních závislostech podle závěrečného auditu.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 39 testů prošlo, 1 izolovaný databázový test byl očekávaně přeskočen bez `pnpm test:db`.
+- `pnpm build` – úspěch s Next.js 16.3.0; všechny chráněné stránky a API route zůstaly dynamické.
+- `pnpm audit --prod` – po aktualizaci Next.js 16.3.0 úspěch: žádné známé zranitelnosti.
+- `pnpm dev --hostname 127.0.0.1 --port 3001` – vývojový server nastartoval bez nové kritické chyby.
+- Lokální HTTP kontrola produkčního serveru – `/host` vrací `Cache-Control: private, no-store, max-age=0`; neplatný `/auth/verify?token=…` vrací `Cache-Control: no-store`, `Referrer-Policy: no-referrer` a přesměrování bez tokenu.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Spusťte aplikaci s lokální MongoDB a správným `APP_URL`. Z jedné IP odešlete pět platných žádostí o magic link se stejným e-mailem a šestou opakujte; zopakujte také s jiným e-mailem ze stejné IP.
+2. Porovnejte odpověď při správném a chybném společném kódu pro platný e-mail. Pro chybný kód ověřte, že se nevytvoří vývojový link, ale uživatel dostane stejnou obecnou zprávu.
+3. V prohlížeči otevřete čerstvý magic link a ověřte přesměrování na `/host` nebo `/admin` bez `token` v adresním řádku. Použitý a expirovaný link musí skončit na `/` s obecnou chybou bez tokenu v URL.
+4. Jako host otevřete `/admin` a `/api/admin/rsvps`; jako admin zkuste `/host` a `/api/rsvp`. Pro hostovský `PUT /api/rsvp` ručně přidejte `ownerEmail` jiného člověka a také odešlete požadavek s cizím nebo chybějícím `Origin`.
+5. Odhlaste se, pak opakujte chráněné `GET` i `PUT` s původní session cookie. V síťovém panelu ověřte `HttpOnly`, `SameSite=Lax`, v produkci `Secure`, a hlavičky `Cache-Control`/`Referrer-Policy` na ověřovacím redirectu a chráněných datech.
+6. Prohlédněte produkční logy a odpovědi: nesmí obsahovat token, session, svatební kód ani zbytečná osobní data. Spusťte `pnpm test` a `pnpm audit --prod`.
+
+#### Očekávaný výsledek ručního testu
+
+Šestá rychlá žádost i žádost s jiným e-mailem ze stejné IP vrátí HTTP 429 s `Retry-After`; po 15 minutách je možné žádat znovu. Odpověď pro správný a chybný kód je stejná, ale chybný kód nevytvoří token. Role, vlastnictví RSVP, opakovaný/expirovaný token i zneplatněná session jsou serverem odmítnuty. Cross-site mutace se neprovedou, token nezůstane v URL ani referreru a citlivé odpovědi se neukládají do cache. Testy projdou a audit nehlásí známé zranitelnosti.
+
+#### Poznámky pro následující fázi
+
+Fáze 14 může považovat bezpečnostní regresní testy za součást výchozí sady. Při finální akceptaci má ponechat lokální omezení limiteru transparentně zdokumentované a testovat s platnou `Origin` hlavičkou pro všechny mutace.

@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 function homeRedirect(request: Request, state: "invalid-link" | "verification-failed"): NextResponse {
   const url = new URL("/", request.url);
   url.searchParams.set("auth", state);
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  return response;
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -27,6 +30,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
 
     const response = NextResponse.redirect(new URL(outcome.destination, request.url));
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("Referrer-Policy", "no-referrer");
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: outcome.sessionToken,

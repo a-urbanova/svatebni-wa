@@ -152,6 +152,34 @@ test("načtení session přepočítá roli podle uloženého e-mailu", async () 
   assert.equal(current?.role, "admin");
 });
 
+test("expirovaná nebo odhlášením zneplatněná session již neautorizuje požadavek", async () => {
+  let active = true;
+  const sessions = {
+    async findValidByToken() {
+      return active
+        ? {
+            email: "host@example.cz",
+            createdAt: now,
+            expiresAt: new Date("2026-08-14T10:00:00.000Z"),
+          }
+        : null;
+    },
+    async invalidate() {
+      active = false;
+      return true;
+    },
+  };
+
+  assert.equal((await getCurrentSessionByToken("session-token", sessions, now))?.role, "guest");
+  await invalidateSession("session-token", sessions);
+  assert.equal(await getCurrentSessionByToken("session-token", sessions, now), null);
+  assert.equal(await getCurrentSessionByToken("expirovany-token", {
+    async findValidByToken() {
+      return null;
+    },
+  }, now), null);
+});
+
 test("odhlášení zneplatní session a cookie má bezpečné atributy", async () => {
   const invalidated: string[] = [];
   await invalidateSession("session-token", {

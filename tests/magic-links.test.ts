@@ -72,7 +72,7 @@ test("správný kód vytvoří nový token pro normalizovaný e-mail a obecnou o
   assert.deepEqual(tokens[0]?.expiresAt, new Date("2026-08-02T10:15:00.000Z"));
 });
 
-test("špatný společný kód nevytvoří ani nedoručí token", async () => {
+test("špatný společný kód nevytvoří ani nedoručí token, ale vrátí obecnou odpověď", async () => {
   const tokens: CreatedToken[] = [];
   let deliveryCalls = 0;
 
@@ -88,8 +88,8 @@ test("špatný společný kód nevytvoří ani nedoručí token", async () => {
   );
 
   assert.deepEqual(result, {
-    kind: "invalid_wedding_code",
-    message: "Zadaný společný svatební kód není správný.",
+    kind: "success",
+    message: "Pokud jsou zadané údaje v pořádku, odkaz pro přihlášení jsme připravili.",
   });
   assert.equal(tokens.length, 0);
   assert.equal(deliveryCalls, 0);

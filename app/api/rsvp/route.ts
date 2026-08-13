@@ -1,4 +1,6 @@
 import { getCurrentSession } from "@/lib/auth/sessions";
+import { isSameOriginMutation } from "@/lib/auth/request-security";
+import { getServerEnv } from "@/lib/config/env.server";
 import { getRepositories } from "@/lib/db/repositories";
 import { loadHostRsvp, saveHostRsvp, type HostRsvpOutcome } from "@/lib/rsvp/host-rsvp";
 
@@ -37,6 +39,14 @@ export async function GET(): Promise<Response> {
 }
 
 export async function PUT(request: Request): Promise<Response> {
+  try {
+    if (!isSameOriginMutation(request, getServerEnv().APP_URL)) {
+      return json({ kind: "forbidden", message: "Požadavek nelze ověřit. Obnovte stránku a zkuste to znovu." }, 403);
+    }
+  } catch {
+    return json({ kind: "server_error", message: "Odpověď se teď nepodařilo uložit. Zkuste to prosím později." }, 500);
+  }
+
   let payload: unknown;
 
   try {

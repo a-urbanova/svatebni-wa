@@ -14,7 +14,7 @@ const initialValues = {
 };
 
 type MagicLinkApiResponse = {
-  kind: "success" | "invalid_input" | "invalid_wedding_code" | "server_error";
+  kind: "success" | "invalid_input" | "forbidden" | "rate_limited" | "server_error";
   message: string;
   fieldErrors?: FieldErrors;
   developmentMagicLink?: string;
