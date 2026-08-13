@@ -1,8 +1,8 @@
 import { OutlineButton } from "./ui";
 
-export function UserBar({ email }: { email: string }) {
+export function UserBar({ email, className = "" }: { email: string; className?: string }) {
   return (
-    <div className="user-bar">
+    <div className={`user-bar ${className}`.trim()}>
       <p>
         Přihlášeni jako <strong>{email}</strong>
       </p>

@@ -4,8 +4,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 10 dokončena
-- Poslední dokončená fáze: 10 – Admin data a souhrny
+- Aktuální fáze: 11 dokončena
+- Poslední dokončená fáze: 11 – Admin dashboard
 - Poslední aktualizace: 2026-08-13
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
@@ -26,7 +26,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 08 | Formulář hosta – UI | Dokončeno | 2026-08-12 |
 | 09 | Uložení a načtení RSVP | Dokončeno | 2026-08-12 |
 | 10 | Admin data a souhrny | Dokončeno | 2026-08-13 |
-| 11 | Admin dashboard | Nezahájeno | — |
+| 11 | Admin dashboard | Dokončeno | 2026-08-13 |
 | 12 | Responzivita, přístupnost a stavy | Nezahájeno | — |
 | 13 | Bezpečnost a odolnost | Nezahájeno | — |
 | 14 | Testy a finální akceptace | Nezahájeno | — |
@@ -775,3 +775,62 @@ Správce obdrží pouze JSON pro čtení: jeden řádek na osobu se všemi poža
 #### Poznámky pro následující fázi
 
 Fáze 11 má zachovat serverový guard stránky `/admin` a tento read-only endpoint použít pro karty, vyhledávání, filtry a tabulku. Nemá doplňovat žádnou admin mutaci ani klientské autorizační rozhodnutí.
+
+### Fáze 11 – Admin dashboard
+
+- Datum dokončení: 2026-08-13
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+`/admin` je nyní kompletní read-only přehled: hlavička s prsteny, údaji o svatbě, e-mailem správce a odhlášením, čtyři souhrnné karty, vyhledávání, filtry a tabulka všech požadovaných údajů včetně odvozu. Klient načítá data pouze z existujícího autorizovaného endpointu. Přibyly loading, error a empty stavy; dlouhé hodnoty se zalamují a mobil používá řízený horizontální posun tabulky.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `app/admin/page.tsx` – chráněná stránka a předání URL filtrů dashboardu
+- `components/admin-dashboard.tsx` – dashboard, API načítání, souhrny, filtry, stavy a tabulka
+- `components/admin-dashboard-state.ts` – stav filtrů, URL serializace a testovatelný model stavů
+- `components/user-bar.tsx`, `app/globals.css` – hlavička a responzivní styl administrace
+- `tests/admin-dashboard-state.test.ts` – testy filtrů a prázdného stavu
+- `docs/POSTUP.md` – tento pravdivý záznam
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Filtry se ukládají přes `history.replaceState` do URL query parametrů.
+- Důvod: Obnovení stránky neztratí filtr bez složité routerové logiky.
+- Dopad na další fáze: Server nadále validuje a autorizuje každý dotaz `/api/admin/rsvps`; URL není zdrojem oprávnění.
+- Rozhodnutí: Mobil zachovává jednu tabulku s fokusem dostupným horizontálním posunem.
+- Důvod: Žádný sloupec ani celý obsah dlouhé hodnoty se neztratí.
+- Dopad na další fáze: Fáze 12 může doplnit jemný UX/accessibility polish bez změny datového rozhraní.
+
+#### Známá omezení nebo nedodělky
+
+- CSV export, editace, mazání, komplexní stránkování a finální cross-browser polish zůstávají mimo rozsah této fáze.
+
+#### Chyby, které se objevily
+
+- Chyba: Pokus o nový dev server na portu 3011 zjistil již běžící Next.js server na portu 3000.
+- Příčina: Lokální server byl spuštěný před kontrolou.
+- Způsob opravy: Nebyl ukončen; `/admin` na něm ověřeně vrátil očekávané HTTP 307 pro nepřihlášeného uživatele.
+- Zůstává nějaké riziko: Ne.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm test` – úspěch; 35 testů prošlo a 1 izolovaný databázový test byl očekávaně přeskočen bez `.env.test`.
+- `pnpm build` – úspěch; sestavení obsahuje dynamickou `/admin` i read-only endpoint.
+- Kontrola běžícího dev serveru `/admin` – očekávané HTTP 307 bez nové kritické chyby.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Přihlaste se jako správce a otevřete `/admin` na desktopu; porovnejte hlavičku, karty a štítky s referencí.
+2. Zkontrolujte souhrny, vyhledávání podle jména/e-mailu, jednotlivé filtry i kombinaci filtrů; obnovte stránku a ověřte zachování URL filtrů.
+3. Použijte prázdnou databázi nebo filtr bez výsledku a ověřte empty stav; dočasnou chybou endpointu ověřte obecný error stav bez interních detailů.
+4. Na šířce 360 px posuňte tabulku a ověřte dostupnost všech sloupců, dlouhých e-mailů a zpráv; ověřte také absenci editace a mazání.
+
+#### Očekávaný výsledek ručního testu
+
+Správce vidí vizuálně konzistentní čtecí dashboard. Řádky i souhrny odpovídají serverovým datům, filtry přetrvají obnovu stránky, stavy jsou srozumitelné a na mobilu jsou všechny údaje dosažitelné bez akce pro změnu dat.
+
+#### Poznámky pro následující fázi
+
+Fáze 12 může navázat na hotový mobilní scroll, focus styl a stavy dashboardu; nesmí oslabit serverovou autorizaci endpointu ani přidat klientské rozhodování o roli.
