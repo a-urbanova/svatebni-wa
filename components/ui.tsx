@@ -50,11 +50,21 @@ export function StatusMessage({
   return (
     <p
       className={`status-message status-message-${tone} ${className}`.trim()}
+      aria-atomic="true"
+      aria-live={tone === "error" ? "assertive" : "polite"}
       role={tone === "error" ? "alert" : "status"}
       {...props}
     >
       {children}
     </p>
+  );
+}
+
+export function SkipLink({ href }: { href: string }) {
+  return (
+    <a className="skip-link" href={href}>
+      Přeskočit na hlavní obsah
+    </a>
   );
 }
 

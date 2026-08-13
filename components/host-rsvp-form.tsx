@@ -11,6 +11,7 @@ import {
   addPerson,
   createInitialRsvpDraft,
   createRsvpDraftFromStoredRsvp,
+  getHostRsvpPhase,
   removePerson,
   shouldShowDietaryDetails,
   shouldShowTransportDestination,
@@ -53,6 +54,8 @@ export function HostRsvpForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const isSubmittingRef = useRef(false);
+  const personNameInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const pendingFocusPersonId = useRef<string | null>(null);
 
   function clearMessages() {
     setFormError("");
@@ -91,6 +94,14 @@ export function HostRsvpForm() {
     void Promise.resolve().then(loadRsvp);
   }, [loadRsvp]);
 
+  useEffect(() => {
+    const personId = pendingFocusPersonId.current;
+    if (!personId) return;
+
+    personNameInputs.current[personId]?.focus();
+    pendingFocusPersonId.current = null;
+  }, [draft.persons]);
+
   function updatePerson(personId: string, field: keyof PersonDraft, value: string | boolean) {
     setDraft((currentDraft) => ({
       ...currentDraft,
@@ -124,12 +135,17 @@ export function HostRsvpForm() {
   }
 
   function addAnotherPerson() {
-    setDraft((currentDraft) => addPerson(currentDraft, createPersonId()));
+    const personId = createPersonId();
+    setDraft((currentDraft) => addPerson(currentDraft, personId));
+    pendingFocusPersonId.current = personId;
     clearMessages();
   }
 
   function removeExistingPerson(personId: string) {
+    const personIndex = draft.persons.findIndex((person) => person.id === personId);
+    const nextPerson = draft.persons[personIndex + 1] ?? draft.persons[personIndex - 1];
     setDraft((currentDraft) => removePerson(currentDraft, personId));
+    pendingFocusPersonId.current = nextPerson?.id ?? null;
     setFieldErrors({});
     clearMessages();
   }
@@ -192,7 +208,7 @@ export function HostRsvpForm() {
   }
 
   return (
-    <section className="host-form-section" aria-labelledby="host-form-title">
+    <section className="host-form-section" id="host-rsvp" aria-labelledby="host-form-title">
       <div className="host-form-heading">
         <h2 id="host-form-title">Vaše odpověď</h2>
         <p>
@@ -202,11 +218,11 @@ export function HostRsvpForm() {
         </p>
       </div>
 
-      {isLoading ? (
+      {getHostRsvpPhase(isLoading, loadError) === "loading" ? (
         <div className="host-form-loading" role="status">
           Načítáme vaši uloženou odpověď…
         </div>
-      ) : loadError ? (
+      ) : getHostRsvpPhase(isLoading, loadError) === "error" ? (
         <div className="host-form-loading">
           <StatusMessage tone="error">{loadError}</StatusMessage>
           {sessionExpired ? (
@@ -218,7 +234,7 @@ export function HostRsvpForm() {
           )}
         </div>
       ) : (
-        <form className="host-rsvp-form" noValidate onSubmit={handleSubmit}>
+        <form aria-busy={isSubmitting} className="host-rsvp-form" noValidate onSubmit={handleSubmit}>
         {draft.persons.map((person, personIndex) => (
           <PersonCard
             canRemove={draft.persons.length > 1}
@@ -231,6 +247,9 @@ export function HostRsvpForm() {
             }}
             index={personIndex}
             key={person.id}
+            onFirstNameInput={(element) => {
+              personNameInputs.current[person.id] = element;
+            }}
             onCheckboxChange={updateCheckboxPersonField}
             onRemove={removeExistingPerson}
             onSelectChange={updateSelectPersonField}
@@ -294,6 +313,7 @@ type PersonCardProps = {
   errors: Partial<Record<"firstName" | "lastName" | "transportDestination" | "dietaryDetails" | "note", string>>;
   index: number;
   onCheckboxChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onFirstNameInput: (element: HTMLInputElement | null) => void;
   onRemove: (personId: string) => void;
   onSelectChange: (event: ChangeEvent<HTMLSelectElement>) => void;
   onTextChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -306,6 +326,7 @@ function PersonCard({
   errors,
   index,
   onCheckboxChange,
+  onFirstNameInput,
   onRemove,
   onSelectChange,
   onTextChange,
@@ -341,6 +362,7 @@ function PersonCard({
             maxLength={RSVP_LIMITS.name}
             name={`${person.id}:firstName`}
             onChange={onTextChange}
+            ref={onFirstNameInput}
             placeholder="Jméno"
             type="text"
             value={person.firstName}

@@ -21,6 +21,13 @@ export type RsvpDraft = {
 
 export type FieldErrors = Record<string, string>;
 
+export type HostRsvpPhase = "loading" | "error" | "form";
+
+export function getHostRsvpPhase(isLoading: boolean, loadError: string): HostRsvpPhase {
+  if (isLoading) return "loading";
+  return loadError ? "error" : "form";
+}
+
 export function createPersonDraft(id: string): PersonDraft {
   return {
     id,

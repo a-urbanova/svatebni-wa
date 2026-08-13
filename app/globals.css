@@ -29,7 +29,7 @@
   --shadow-card: 0 1px 3px rgb(52 45 42 / 8%), 0 10px 28px rgb(52 45 42 / 3%);
   --content-narrow: 46rem;
   --content-wide: 78rem;
-  --focus-ring: 0 0 0 3px rgb(199 131 118 / 38%);
+  --focus-ring: 0 0 0 3px var(--color-surface), 0 0 0 5px #713732;
 }
 
 * {
@@ -46,6 +46,7 @@ body {
 
 body {
   min-height: 100vh;
+  overflow-wrap: anywhere;
   color: var(--color-text);
   background: var(--color-canvas);
   font-family: var(--font-sans);
@@ -71,6 +72,29 @@ textarea:focus-visible {
   box-shadow: var(--focus-ring);
 }
 
+.skip-link {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 50%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-text);
+  color: #fff;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -120%);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, var(--space-3));
+}
+
 button {
   cursor: pointer;
 }
@@ -83,6 +107,14 @@ button:disabled {
 .page-shell {
   min-height: 100vh;
   padding: var(--space-8) var(--space-5);
+}
+
+main,
+.content-container,
+.user-bar,
+.admin-page-header,
+.admin-heading {
+  min-width: 0;
 }
 
 .page-shell-invitation {
@@ -145,7 +177,8 @@ button:disabled {
 }
 
 .user-bar .button {
-  min-height: 2.35rem;
+  flex: 0 0 auto;
+  min-height: 2.75rem;
   padding: 0.5rem 1rem;
 }
 
@@ -324,7 +357,7 @@ button:disabled {
 
 .form-field input:focus-visible {
   border-color: var(--color-accent);
-  box-shadow: 0 3px 0 -1px rgb(199 131 118 / 25%);
+  box-shadow: var(--focus-ring);
 }
 
 .form-field input[aria-invalid="true"] {
@@ -398,14 +431,14 @@ button:disabled {
 }
 
 .button-primary {
-  border: 1px solid var(--color-accent);
-  background: var(--color-accent);
+  border: 1px solid #9a4d47;
+  background: #9a4d47;
   color: #fff;
 }
 
 .button-primary:not(:disabled):hover {
-  background: #b97266;
-  border-color: #b97266;
+  background: #813e39;
+  border-color: #813e39;
 }
 
 .button-outline {
@@ -522,8 +555,14 @@ button:disabled {
 .admin-filters {
   display: grid;
   grid-template-columns: minmax(16rem, 1.5fr) repeat(3, minmax(9rem, 0.8fr)) auto;
-  align-items: center;
+  align-items: end;
   gap: var(--space-3);
+}
+
+.admin-filter-field {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
 }
 
 .admin-search-field,
@@ -574,6 +613,8 @@ button:disabled {
 }
 
 .admin-clear-filters {
+  min-height: 2.75rem;
+  padding: var(--space-2) 0;
   border: 0;
   background: transparent;
   color: var(--color-accent);
@@ -679,6 +720,7 @@ button:disabled {
 .admin-table td:nth-child(5),
 .admin-table td:nth-child(8) {
   min-width: 8.5rem;
+  overflow-wrap: anywhere;
 }
 
 .admin-long-value {
@@ -725,8 +767,8 @@ button:disabled {
 }
 
 .page-shell-invitation .user-bar .button {
-  min-height: 2.1rem;
-  padding: 0.35rem 0.7rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
   border-color: transparent;
   font-size: 0.68rem;
 }
@@ -820,6 +862,9 @@ button:disabled {
   color: var(--color-text-muted);
   font-size: 0.72rem;
   font-weight: 700;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: var(--space-2);
   letter-spacing: 0.13em;
   text-decoration: underline;
   text-underline-offset: 0.2em;
@@ -921,7 +966,7 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 2rem;
+  min-height: 2.75rem;
   color: var(--color-text);
   cursor: pointer;
   font-size: 0.95rem;
@@ -1038,7 +1083,6 @@ button:disabled {
 
   .admin-clear-filters {
     justify-self: start;
-    min-height: 2.75rem;
   }
 
   .admin-table-scroll {

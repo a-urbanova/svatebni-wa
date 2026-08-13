@@ -4,8 +4,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 11 dokončena
-- Poslední dokončená fáze: 11 – Admin dashboard
+- Aktuální fáze: 12 dokončena
+- Poslední dokončená fáze: 12 – Responzivita, přístupnost a stavy
 - Poslední aktualizace: 2026-08-13
 - Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
 - Správce balíčků: pnpm 11.9.0
@@ -27,7 +27,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 09 | Uložení a načtení RSVP | Dokončeno | 2026-08-12 |
 | 10 | Admin data a souhrny | Dokončeno | 2026-08-13 |
 | 11 | Admin dashboard | Dokončeno | 2026-08-13 |
-| 12 | Responzivita, přístupnost a stavy | Nezahájeno | — |
+| 12 | Responzivita, přístupnost a stavy | Dokončeno | 2026-08-13 |
 | 13 | Bezpečnost a odolnost | Nezahájeno | — |
 | 14 | Testy a finální akceptace | Nezahájeno | — |
 
@@ -834,3 +834,73 @@ Správce vidí vizuálně konzistentní čtecí dashboard. Řádky i souhrny odp
 #### Poznámky pro následující fázi
 
 Fáze 12 může navázat na hotový mobilní scroll, focus styl a stavy dashboardu; nesmí oslabit serverovou autorizaci endpointu ani přidat klientské rozhodování o roli.
+
+### Fáze 12 – Responzivita, přístupnost a stavy
+
+- Datum dokončení: 2026-08-13
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Přibyly spolehlivě skryté skip odkazy pro klávesnici, kontrastní focus, živé oznamování dynamických zpráv a `aria-busy` při ukládání. Hostovský formulář přesouvá focus do nové osoby, případně na sousední osobu po odebrání. Administrace má viditelné popisky filtrů, oznámení počtu výsledků a popsaný focusovatelný posun tabulky. Dlouhé hodnoty se zalamují; původní formátování, karta, řádky, okraje a mobilní posuv tabulky z fáze 11 zůstaly zachované.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `app/globals.css` – izolované focus, skip-link, dotykové a dlouhé textové úpravy; pravidla vzhledu tabulky nebyla odstraněna ani přepsána.
+- `next.config.ts` – povolení obou lokálních originů pro HMR při vývoji.
+- `app/page.tsx`, `app/host/page.tsx`, `app/admin/page.tsx` – cíle skip odkazů.
+- `components/ui.tsx` – přístupné stavové zprávy a sdílený skip odkaz.
+- `components/host-rsvp-form.tsx`, `components/host-rsvp-form-state.ts` – stav formuláře, `aria-busy` a řízení focusu po změně osob.
+- `components/admin-dashboard.tsx` – viditelné popisky filtrů, oznámení výsledků a sémantika posunu tabulky.
+- `tests/host-rsvp-form.test.ts` – test prioritizace loading, error a formulářového stavu.
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Původní styly `.admin-table`, `.admin-table-scroll` a mobilního posuvu z fáze 11 nebyly měněny.
+- Důvod: Zachování uživatelem ověřeného vizuálního formátování tabulky.
+- Dopad na další fáze: Úpravy přístupnosti administrace se přidávají kolem tabulky, ne přestavbou tabulky.
+- Rozhodnutí: Neaktivní skip odkaz používá průhlednost, vypnuté ukazatelové události i přesun mimo viewport.
+- Důvod: V Safari se nesmí zobrazovat po odchodu focusu z vývojové lišty.
+- Dopad na další fáze: Skip odkaz se smí zobrazit pouze při `:focus` nebo `:focus-visible`.
+- Rozhodnutí: Vývojový server povoluje `localhost` i `127.0.0.1` pro HMR.
+- Důvod: Next.js při zablokovaném HMR může v lokálním prohlížeči zobrazit nový markup se starým CSS bundlem.
+- Dopad na další fáze: Po změně `next.config.ts` se vývojový server vždy jednou restartuje.
+
+#### Známá omezení nebo nedodělky
+
+- Bez nového produktového omezení. Prohlížečové ověření neotevíralo chráněné obrazovky se skutečnou session, aby nebyla použita tajná lokální konfigurace ani změněna data.
+
+#### Chyby, které se objevily
+
+- Chyba: Předchozí necommitovaný pokus fáze 12 byl vrácen spolu se všemi pracovními změnami.
+- Příčina: Pro fázi neexistoval Git commit ani stash.
+- Způsob opravy: Změny byly rekonstruovány po malých dávkách z čisté fáze 11; po každé dávce prošly lint, typová kontrola a testy.
+- Zůstává nějaké riziko: Ne; produkční build prošel a CSS diff potvrzuje zachování pravidel tabulky.
+- Chyba: V logu Next.js byla zablokovaná HMR žádost z `127.0.0.1`.
+- Příčina: Vývojový server dovoloval pouze výchozí hostname, zatímco část lokálních náhledů používá druhý.
+- Způsob opravy: `allowedDevOrigins` nyní obsahuje oba lokální hostname; změna se projeví po restartu serveru.
+- Zůstává nějaké riziko: Před restartem poběží stará konfigurace.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 36 testů prošlo, 1 izolovaný databázový test byl očekávaně přeskočen bez `pnpm test:db`.
+- `pnpm build` – úspěch.
+- Integrovaný prohlížeč na `/` při 360, 768, 1024 a 1440 px – bez vodorovného přetečení; skip odkaz měl bez focusu `opacity: 0` a vypnuté ukazatelové události, tlačítko měřilo 44 px na výšku.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Otevřete `/`, `/host` a `/admin` na šířkách 360, 768 a 1440 px a se zvětšením textu 200 %.
+2. Stiskněte Tab: skip odkaz se má ukázat jen s focusem a po přesunu focusu se skrýt. Ověřte zřetelný focus všech ovládacích prvků.
+3. U hosta přidejte a odeberte osobu a ověřte focus v poli jména. Vyvolejte načítání, validační chybu, vypršelou session, ukládání a úspěch.
+4. U správce ověřte prázdný stav, filtry bez výsledku, dlouhý e-mail, dlouhou poznámku a vodorovný posun tabulky na mobilu.
+5. Proveďte accessibility audit prohlížeče a ověřte, že chybové zprávy neobsahují interní podrobnosti.
+
+#### Očekávaný výsledek ručního testu
+
+Obsah stránky se vodorovně neposunuje, dlouhé texty layout nerozbijí a tabulka zůstává vzhledově shodná s fází 11. Odkaz pro přeskočení obsahu není vidět bez focusu. Formuláře mají viditelné popisky, čtečky dostávají důležitá stavová sdělení a všechny běžné stavy jsou srozumitelné.
+
+#### Poznámky pro následující fázi
+
+Fáze 13 musí zachovat obecné uživatelské chybové zprávy, ochranu tajných hodnot a serverovou autorizaci.

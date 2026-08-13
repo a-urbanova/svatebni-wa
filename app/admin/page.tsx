@@ -1,6 +1,6 @@
 import { AdminDashboard } from "@/components/admin-dashboard";
 import { UserBar } from "@/components/user-bar";
-import { RingsMotif, SectionDivider } from "@/components/ui";
+import { RingsMotif, SectionDivider, SkipLink } from "@/components/ui";
 import { getCurrentSession, protectedPageRedirect } from "@/lib/auth/sessions";
 import { redirect } from "next/navigation";
 
@@ -30,21 +30,24 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   return (
-    <main className="page-shell admin-page-shell">
-      <div className="content-container admin-page-content">
-        <header className="admin-page-header">
-          <div className="admin-heading">
-            <RingsMotif compact />
-            <div>
-              <h1 id="admin-overview-title">Přehled odpovědí hostů</h1>
-              <p>Anna &amp; Petr · 21. září 2026</p>
+    <>
+      <SkipLink href="#admin-dashboard" />
+      <main className="page-shell admin-page-shell">
+        <div className="content-container admin-page-content">
+          <header className="admin-page-header">
+            <div className="admin-heading">
+              <RingsMotif compact />
+              <div>
+                <h1 id="admin-overview-title">Přehled odpovědí hostů</h1>
+                <p>Anna &amp; Petr · 21. září 2026</p>
+              </div>
             </div>
-          </div>
-          <UserBar className="admin-user-bar" email={session.email} />
-        </header>
-        <SectionDivider />
-        <AdminDashboard initialSearch={initialSearchParams.toString()} />
-      </div>
-    </main>
+            <UserBar className="admin-user-bar" email={session.email} />
+          </header>
+          <SectionDivider />
+          <AdminDashboard initialSearch={initialSearchParams.toString()} />
+        </div>
+      </main>
+    </>
   );
 }

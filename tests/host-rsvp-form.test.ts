@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   addPerson,
   createInitialRsvpDraft,
+  getHostRsvpPhase,
   removePerson,
   shouldShowDietaryDetails,
   shouldShowTransportDestination,
@@ -30,6 +31,12 @@ test("formulář přidává a odebírá osoby bez záměny hodnot podle stabiln�
   assert.equal(afterRemoval.persons.length, 1);
   assert.deepEqual(afterRemoval.persons[0], { ...filled.persons[1], id: "petr" });
   assert.equal(removePerson(afterRemoval, "petr"), afterRemoval);
+});
+
+test("stav formuláře hosta vždy upřednostní načítání před chybou a jinak zobrazí formulář", () => {
+  assert.equal(getHostRsvpPhase(true, "Síťová chyba"), "loading");
+  assert.equal(getHostRsvpPhase(false, "Síťová chyba"), "error");
+  assert.equal(getHostRsvpPhase(false, ""), "form");
 });
 
 test("formulář zobrazuje podmíněná pole jen pro zvolený odvoz a jinou dietu", () => {

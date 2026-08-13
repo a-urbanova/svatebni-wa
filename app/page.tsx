@@ -1,6 +1,6 @@
 import { InvitationSection } from "@/components/invitation";
 import { LoginForm } from "@/components/login-form";
-import { Card, StatusMessage } from "@/components/ui";
+import { Card, SkipLink, StatusMessage } from "@/components/ui";
 
 type HomePageProps = {
   searchParams: Promise<{ auth?: string }>;
@@ -17,10 +17,11 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   return (
     <>
+      <SkipLink href="#prihlaseni" />
       <main className="page-shell page-shell-invitation">
         <div className="content-container content-container-narrow">
           <InvitationSection />
-          <Card className="login-card" aria-labelledby="login-title">
+          <Card className="login-card" id="prihlaseni" aria-labelledby="login-title">
             <h2 id="login-title">Přihlášení</h2>
             <p className="login-instructions">
               Zadejte e-mail a společný svatební kód, který jste obdrželi v
