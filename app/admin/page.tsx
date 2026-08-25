@@ -26,7 +26,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const rawSearchParams = await searchParams;
   const initialSearchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(rawSearchParams)) {
-    if (typeof value === "string") initialSearchParams.set(key, value);
+    if (typeof value === "string") {
+      initialSearchParams.set(key, value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) initialSearchParams.append(key, item);
+    }
   }
 
   return (
@@ -45,7 +49,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <UserBar className="admin-user-bar" email={session.email} />
           </header>
           <SectionDivider />
-          <AdminDashboard initialSearch={initialSearchParams.toString()} />
+          <AdminDashboard initialSearch={initialSearchParams.toString()} key={initialSearchParams.toString()} />
         </div>
       </main>
     </>

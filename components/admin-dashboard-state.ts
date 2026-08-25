@@ -16,6 +16,11 @@ export const initialAdminDashboardFilters: AdminDashboardFilters = {
   dietaryChoice: "",
 };
 
+export type InitialAdminDashboardRequest = {
+  filters: AdminDashboardFilters;
+  query: string;
+};
+
 const personTypes = new Set<PersonType>(["adult", "child"]);
 const dietaryChoices = new Set<DietaryChoice>([
   "none",
@@ -42,6 +47,20 @@ export function filtersFromSearchParams(searchParams: URLSearchParams): AdminDas
     dietaryChoice: dietaryChoice && dietaryChoices.has(dietaryChoice as DietaryChoice)
       ? (dietaryChoice as DietaryChoice)
       : "",
+  };
+}
+
+/**
+ * Ovládací prvky mohou neplatnou hodnotu bezpečně vynechat, ale první požadavek
+ * musí zachovat původní URL, aby ji server mohl autoritativně odmítnout.
+ */
+export function createInitialAdminDashboardRequest(
+  initialSearch: string,
+): InitialAdminDashboardRequest {
+  const searchParams = new URLSearchParams(initialSearch);
+  return {
+    filters: filtersFromSearchParams(searchParams),
+    query: searchParams.toString(),
   };
 }
 

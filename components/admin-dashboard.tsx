@@ -8,11 +8,11 @@ import type { DietaryChoice, PersonType } from "@/lib/rsvp/types";
 
 import { Card, StatusMessage } from "./ui";
 import {
-  filtersFromSearchParams,
   filtersToSearchParams,
   getAdminDashboardPhase,
   hasActiveAdminFilters,
   initialAdminDashboardFilters,
+  createInitialAdminDashboardRequest,
   type AdminDashboardFilters,
 } from "./admin-dashboard-state";
 
@@ -37,7 +37,7 @@ const emptySummary: AdminSummary = {
   overnightStays: 0,
 };
 
-type AdminApiResponse = { message?: string; overview?: AdminOverview };
+type AdminApiResponse = { kind?: string; message?: string; overview?: AdminOverview };
 
 function formatUpdatedAt(value: string): string {
   const date = new Date(value);
@@ -79,21 +79,23 @@ function formatPersonCount(count: number): string {
 }
 
 export function AdminDashboard({ initialSearch }: { initialSearch: string }) {
-  const [filters, setFilters] = useState<AdminDashboardFilters>(() =>
-    filtersFromSearchParams(new URLSearchParams(initialSearch)),
-  );
+  const [initialRequest] = useState(() => createInitialAdminDashboardRequest(initialSearch));
+  const initialQuery = initialRequest.query;
+  const [filters, setFilters] = useState<AdminDashboardFilters>(initialRequest.filters);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [error, setError] = useState("");
+  const [hasInvalidFilters, setHasInvalidFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const requestId = useRef(0);
+  const hasUserChangedFilters = useRef(false);
+  const lastRequestQuery = useRef(initialRequest.query);
 
-  const loadOverview = useCallback(async (nextFilters: AdminDashboardFilters) => {
+  const loadOverview = useCallback(async (query: string) => {
     const request = ++requestId.current;
     setIsLoading(true);
     setError("");
-
-    const searchParams = filtersToSearchParams(nextFilters);
-    const query = searchParams.toString();
+    setHasInvalidFilters(false);
+    lastRequestQuery.current = query;
 
     try {
       const response = await fetch(`/api/admin/rsvps${query ? `?${query}` : ""}`, {
@@ -104,6 +106,12 @@ export function AdminDashboard({ initialSearch }: { initialSearch: string }) {
 
       if (response.status === 401) {
         setError("Přihlášení vypršelo. Přihlaste se prosím znovu.");
+        setOverview(null);
+        return;
+      }
+      if (response.status === 400 && data.kind === "invalid_filters") {
+        setError(data.message ?? "Zadané filtry nejsou platné.");
+        setHasInvalidFilters(true);
         setOverview(null);
         return;
       }
@@ -125,24 +133,30 @@ export function AdminDashboard({ initialSearch }: { initialSearch: string }) {
   }, []);
 
   useEffect(() => {
-    const searchParams = filtersToSearchParams(filters);
-    const query = searchParams.toString();
-    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;
-    window.history.replaceState(null, "", nextUrl);
+    const query = hasUserChangedFilters.current
+      ? filtersToSearchParams(filters).toString()
+      : initialQuery;
+
+    if (hasUserChangedFilters.current) {
+      const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;
+      window.history.replaceState(null, "", nextUrl);
+    }
 
     const timer = window.setTimeout(() => {
-      void loadOverview(filters);
-    }, filters.search ? 220 : 0);
+      void loadOverview(query);
+    }, hasUserChangedFilters.current && filters.search ? 220 : 0);
     return () => window.clearTimeout(timer);
-  }, [filters, loadOverview]);
+  }, [filters, initialQuery, loadOverview]);
 
   function updateFilters(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target;
+    hasUserChangedFilters.current = true;
     setFilters((current) => ({ ...current, [name]: value }));
   }
 
   function resetFilters() {
-    setFilters(initialAdminDashboardFilters);
+    hasUserChangedFilters.current = true;
+    setFilters({ ...initialAdminDashboardFilters });
   }
 
   const phase = getAdminDashboardPhase(isLoading, error, overview?.rows.length ?? null);
@@ -224,12 +238,28 @@ export function AdminDashboard({ initialSearch }: { initialSearch: string }) {
 
       {phase === "loading" ? <div className="admin-data-state" role="status">Načítáme odpovědi hostů…</div> : null}
       {phase === "error" ? (
-        <div className="admin-data-state">
-          <StatusMessage tone="error">{error}</StatusMessage>
-          {error.startsWith("Přihlášení") ? <p><Link href="/">Přejít na přihlášení</Link></p> : (
-            <button className="retry-load-button" onClick={() => void loadOverview(filters)} type="button">Zkusit načíst znovu</button>
-          )}
-        </div>
+        hasInvalidFilters ? (
+          <div className="admin-data-state admin-empty-state">
+            <h2>Zadané filtry nejsou platné</h2>
+            <p>Upravte adresu stránky nebo zrušte neplatné filtry a zkuste to znovu.</p>
+            <button className="admin-clear-filters" onClick={resetFilters} type="button">
+              Zrušit neplatné filtry
+            </button>
+          </div>
+        ) : (
+          <div className="admin-data-state">
+            <StatusMessage tone="error">{error}</StatusMessage>
+            {error.startsWith("Přihlášení") ? <p><Link href="/">Přejít na přihlášení</Link></p> : (
+            <button
+              className="retry-load-button"
+              onClick={() => void loadOverview(lastRequestQuery.current)}
+              type="button"
+            >
+              Zkusit načíst znovu
+            </button>
+            )}
+          </div>
+        )
       ) : null}
       {phase === "empty" ? (
         <div className="admin-data-state admin-empty-state">
