@@ -42,6 +42,12 @@ yarn-error.log*
 backups/
 public/svatebni-wa-qr-kody/
 public/svatebni-wa-qr-kody.zip
+public/svatebni-wa-qr.png
+public/svatebni-wa-qr-labelled.svg
+public/svatebni-wa-github-qr.png
+public/svatebni-wa-github-qr-labelled.svg
+public/svatebni-wa-docs-qr.png
+public/svatebni-wa-docs-qr-labelled.svg
 
 # typescript
 *.tsbuildinfo
