@@ -13,6 +13,8 @@ const requiredText = (name: string) =>
     .trim()
     .min(1, `Chybí povinná proměnná ${name}.`);
 
+const optionalText = z.string().trim().default("");
+
 /** Čistá část serverové konfigurace, oddělená kvůli jednotkovým testům. */
 export const serverEnvSchema = z.object({
   MONGODB_URI: requiredText("MONGODB_URI"),
@@ -27,6 +29,17 @@ export const serverEnvSchema = z.object({
   ENABLE_DEV_MAGIC_LINK: z
     .enum(["true", "false"], {
       error: "ENABLE_DEV_MAGIC_LINK musí být true nebo false.",
+    })
+    .default("false")
+    .transform((value) => value === "true"),
+  SMTP_HOST: optionalText,
+  SMTP_PORT: positiveInteger("SMTP_PORT", 65_535).default(587),
+  SMTP_USERNAME: optionalText,
+  SMTP_PASSWORD: optionalText,
+  SMTP_FROM: optionalText,
+  SMTP_SECURE: z
+    .enum(["true", "false"], {
+      error: "SMTP_SECURE musí být true nebo false.",
     })
     .default("false")
     .transform((value) => value === "true"),

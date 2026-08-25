@@ -11,6 +11,12 @@ const validEnv = {
   MAGIC_LINK_TTL_MINUTES: "15",
   SESSION_TTL_DAYS: "7",
   ENABLE_DEV_MAGIC_LINK: "false",
+  SMTP_HOST: "smtp.example.cz",
+  SMTP_PORT: "587",
+  SMTP_USERNAME: "smtp-user",
+  SMTP_PASSWORD: "smtp-password",
+  SMTP_FROM: "Anna & Petr <noreply@example.cz>",
+  SMTP_SECURE: "false",
 };
 
 test("serverová konfigurace načte a převede platné hodnoty", () => {
@@ -18,6 +24,8 @@ test("serverová konfigurace načte a převede platné hodnoty", () => {
   assert.equal(config.MAGIC_LINK_TTL_MINUTES, 15);
   assert.equal(config.SESSION_TTL_DAYS, 7);
   assert.equal(config.ENABLE_DEV_MAGIC_LINK, false);
+  assert.equal(config.SMTP_PORT, 587);
+  assert.equal(config.SMTP_SECURE, false);
 });
 
 test("chyba konfigurace je srozumitelná a neobsahuje tajnou hodnotu", () => {

@@ -1,6 +1,6 @@
 # Svatební web Anna & Petr
 
-Projekt obsahuje fázi 07: magic link se na serveru atomicky spotřebuje, vytvoří se session v HTTP-only cookie a uživatel je podle serverově určené role přesměrován na `/host` nebo `/admin`. Chráněné stránky ověřují session na serveru a obsahují odhlášení.
+Projekt obsahuje zabezpečený magic-link tok: server jednorázově spotřebuje token, vytvoří session v HTTP-only cookie a uživatele podle serverově určené role přesměruje na `/host` nebo `/admin`. Chráněné stránky ověřují session na serveru a obsahují odhlášení.
 
 ## Požadavky
 
@@ -17,7 +17,22 @@ Projekt obsahuje fázi 07: magic link se na serveru atomicky spotřebuje, vytvo�
 
 ### Lokální magic link
 
-Pro lokální klikací odkaz nastavte v `.env.local` `ENABLE_DEV_MAGIC_LINK=true` a spusťte aplikaci přes `pnpm dev`. Jen v režimu development se po správném kódu zobrazí klikací odkaz a současně se vypíše do serverového výstupu. Otevření platného odkazu ho právě jednou spotřebuje, vytvoří sedmidenní session (podle `SESSION_TTL_DAYS`) a přesměruje běžný e-mail na `/host`; dvě adresy definované v zadání přesměruje na `/admin`. Odkaz použitý podruhé nebo po expiraci se bezpečně vrátí na úvodní stránku s obecnou zprávou. V produkčním režimu se magic link nikdy nevrací klientovi ani nezapisuje do logu; současný produkční doručovací adaptér je připravené místo pro budoucí SMTP implementaci.
+Pro lokální klikací odkaz nastavte v `.env.local` `APP_URL=http://localhost:3000` a `ENABLE_DEV_MAGIC_LINK=true`, pak spusťte aplikaci přes `pnpm dev`. SMTP hodnoty pro tento režim nejsou potřeba. Jen v režimu development se po správném kódu zobrazí klikací odkaz a současně se vypíše do serverového výstupu. Otevření platného odkazu ho právě jednou spotřebuje, vytvoří sedmidenní session (podle `SESSION_TTL_DAYS`) a přesměruje běžný e-mail na `/host`; dvě adresy definované v zadání přesměruje na `/admin`. Odkaz použitý podruhé nebo po expiraci se bezpečně vrátí na úvodní stránku s obecnou zprávou.
+
+### Produkční odeslání e-mailu
+
+V produkci se magic link fyzicky odešle přes SMTP. Ve Vercelu nastavte `APP_URL` na veřejnou HTTPS adresu aplikace, `ENABLE_DEV_MAGIC_LINK=false` a vyplňte tyto serverové proměnné v **Settings → Environment Variables** pouze pro Production (nikdy je necommitujte):
+
+```dotenv
+SMTP_HOST=smtp.vas-poskytovatel.cz
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+SMTP_FROM="Anna & Petr <noreply@vasadomena.cz>"
+SMTP_SECURE=false
+```
+
+Port 587 obvykle používá `SMTP_SECURE=false` a STARTTLS; pro implicitně šifrovaný port 465 nastavte `SMTP_SECURE=true`. Adresa v `SMTP_FROM` musí být u poskytovatele ověřená. Produkční odpověď ani log nikdy neobsahují čitelný magic link. Když SMTP konfigurace chybí nebo odeslání selže, uživatel dostane pouze obecnou chybovou zprávu a může si odkaz vyžádat znovu.
 
 Session cookie má atributy `HttpOnly`, `SameSite=Lax` a cestu `/`; atribut `Secure` se zapne pouze v produkci. Na `/host` i `/admin` je k dispozici odhlášení, které odstraní session z databáze i cookie. Role je při každém serverovém načtení znovu určena z normalizovaného e-mailu.
 

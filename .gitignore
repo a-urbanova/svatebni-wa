@@ -38,6 +38,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Lokální MongoDB zálohy a exportované QR balíčky nejsou zdrojové soubory.
+backups/
+public/svatebni-wa-qr-kody/
+public/svatebni-wa-qr-kody.zip
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

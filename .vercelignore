@@ -1,0 +1,2 @@
+# Lokální MongoDB snapshoty nikdy nepatří do deploymentu.
+backups/

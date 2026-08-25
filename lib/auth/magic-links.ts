@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import nodemailer from "nodemailer";
 
 import type { ServerEnv } from "../config/env.schema.ts";
 import { magicLinkRequestSchema } from "../rsvp/schemas.ts";
@@ -8,7 +9,17 @@ import { magicLinkRequestSchema } from "../rsvp/schemas.ts";
 const SUCCESS_MESSAGE = "Pokud jsou zadané údaje v pořádku, odkaz pro přihlášení jsme připravili.";
 
 export type MagicLinkDelivery = {
-  deliver(input: { magicLink: string }): Promise<void>;
+  deliver(input: { email: string; magicLink: string }): Promise<void>;
+};
+
+type SmtpTransport = {
+  sendMail(input: {
+    from: string;
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+  }): Promise<unknown>;
 };
 
 type MagicLinkTokenStore = {
@@ -55,19 +66,77 @@ export function buildMagicLink(appUrl: string, token: string): string {
   return url.toString();
 }
 
-/**
- * Vývojový doručovací adaptér. Produkční větev je záměrně prázdné místo pro
- * budoucí SMTP implementaci: nikdy nevrací ani neloguje magic link.
- */
+function requiredSmtpConfig(env: ServerEnv) {
+  const missing = [
+    ["SMTP_HOST", env.SMTP_HOST],
+    ["SMTP_USERNAME", env.SMTP_USERNAME],
+    ["SMTP_PASSWORD", env.SMTP_PASSWORD],
+    ["SMTP_FROM", env.SMTP_FROM],
+  ].filter(([, value]) => !value).map(([name]) => name);
+
+  if (missing.length > 0) {
+    throw new Error(`Chybí SMTP konfigurace: ${missing.join(", ")}.`);
+  }
+
+  return {
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE,
+    auth: {
+      user: env.SMTP_USERNAME,
+      pass: env.SMTP_PASSWORD,
+    },
+  };
+}
+
+function magicLinkEmail(magicLink: string, ttlMinutes: number) {
+  return {
+    subject: "Přihlášení ke svatebnímu RSVP – Anna & Petr",
+    text: [
+      "Dobrý den,",
+      "",
+      "pro přihlášení ke svatebnímu RSVP otevřete tento jednorázový odkaz:",
+      magicLink,
+      "",
+      `Odkaz platí ${ttlMinutes} minut. Pokud jste o něj nepožádali, tento e-mail ignorujte.`,
+    ].join("\n"),
+    html: [
+      "<p>Dobrý den,</p>",
+      "<p>Pro přihlášení ke svatebnímu RSVP otevřete tento jednorázový odkaz:</p>",
+      `<p><a href="${magicLink}">Přihlásit se ke svatebnímu RSVP</a></p>`,
+      `<p>Odkaz platí ${ttlMinutes} minut. Pokud jste o něj nepožádali, tento e-mail ignorujte.</p>`,
+    ].join(""),
+  };
+}
+
+/** Lokálně vypisuje odkaz jen do development logu; mimo něj jej odešle přes SMTP. */
 export function createMagicLinkDelivery(
-  isDevelopment: boolean,
-  logger: Pick<Console, "info"> = console,
+  {
+    env,
+    isDevelopment,
+    logger = console,
+    createTransport = nodemailer.createTransport,
+  }: {
+    env: ServerEnv;
+    isDevelopment: boolean;
+    logger?: Pick<Console, "info">;
+    createTransport?: (options: ReturnType<typeof requiredSmtpConfig>) => SmtpTransport;
+  },
 ): MagicLinkDelivery {
   return {
-    async deliver({ magicLink }) {
+    async deliver({ email: recipient, magicLink }) {
       if (isDevelopment) {
         logger.info(`[magic-link] Vývojový odkaz: ${magicLink}`);
+        return;
       }
+
+      const transport = createTransport(requiredSmtpConfig(env));
+      const email = magicLinkEmail(magicLink, env.MAGIC_LINK_TTL_MINUTES);
+      await transport.sendMail({
+        from: env.SMTP_FROM,
+        to: recipient,
+        ...email,
+      });
     },
   };
 }
@@ -119,7 +188,7 @@ export async function requestMagicLink(
     email: parsedPayload.data.email,
     expiresAt,
   }, now);
-  await delivery.deliver({ magicLink });
+  await delivery.deliver({ email: parsedPayload.data.email, magicLink });
 
   return {
     kind: "success",

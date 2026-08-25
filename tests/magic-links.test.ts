@@ -16,6 +16,12 @@ const env: ServerEnv = {
   MAGIC_LINK_TTL_MINUTES: 15,
   SESSION_TTL_DAYS: 7,
   ENABLE_DEV_MAGIC_LINK: false,
+  SMTP_HOST: "smtp.example.cz",
+  SMTP_PORT: 587,
+  SMTP_USERNAME: "smtp-user",
+  SMTP_PASSWORD: "smtp-password",
+  SMTP_FROM: "Anna & Petr <noreply@example.cz>",
+  SMTP_SECURE: false,
 };
 
 type CreatedToken = { token: string; email: string; expiresAt: Date; now: Date };
@@ -116,7 +122,11 @@ test("neplatný e-mail je znovu odmítnut na serveru", async () => {
 
 test("vývojové doručení zaloguje odkaz a vrátí jej jen s explicitním přepínačem", async () => {
   const logs: string[] = [];
-  const delivery = createMagicLinkDelivery(true, { info(message: string) { logs.push(message); } });
+  const delivery = createMagicLinkDelivery({
+    env,
+    isDevelopment: true,
+    logger: { info(message: string) { logs.push(message); } },
+  });
   const tokens: CreatedToken[] = [];
 
   const result = await requestMagicLink(
@@ -143,7 +153,14 @@ test("vývojové doručení zaloguje odkaz a vrátí jej jen s explicitním pře
 
 test("produkční režim token klientovi ani do logu nevrátí", async () => {
   const logs: string[] = [];
-  const delivery = createMagicLinkDelivery(false, { info(message: string) { logs.push(message); } });
+  const delivery = createMagicLinkDelivery({
+    env,
+    isDevelopment: false,
+    logger: { info(message: string) { logs.push(message); } },
+    createTransport() {
+      return { async sendMail() {} };
+    },
+  });
   const tokens: CreatedToken[] = [];
 
   const result = await requestMagicLink(
@@ -161,4 +178,55 @@ test("produkční režim token klientovi ani do logu nevrátí", async () => {
   assert.equal(result.kind, "success");
   assert.equal("developmentMagicLink" in result, false);
   assert.deepEqual(logs, []);
+});
+
+test("produkční doručení odešle odkaz na normalizovaný e-mail přes SMTP", async () => {
+  const messages: Array<Record<string, string>> = [];
+  const delivery = createMagicLinkDelivery({
+    env,
+    isDevelopment: false,
+    createTransport(options) {
+      assert.deepEqual(options, {
+        host: "smtp.example.cz",
+        port: 587,
+        secure: false,
+        auth: { user: "smtp-user", pass: "smtp-password" },
+      });
+      return {
+        async sendMail(message) {
+          messages.push(message);
+        },
+      };
+    },
+  });
+
+  await requestMagicLink(
+    { email: " HOST@EXAMPLE.CZ ", weddingCode: "spravny-kod" },
+    {
+      env,
+      loginTokens: createTokenStore([]),
+      delivery,
+      isDevelopment: false,
+      now: fixedNow,
+      generateToken: () => "smtp-token",
+    },
+  );
+
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.to, "host@example.cz");
+  assert.equal(messages[0]?.from, "Anna & Petr <noreply@example.cz>");
+  assert.match(messages[0]?.text ?? "", /http:\/\/localhost:3000\/auth\/verify\?token=smtp-token/);
+  assert.match(messages[0]?.html ?? "", /Přihlásit se ke svatebnímu RSVP/);
+});
+
+test("produkční SMTP bez úplné konfigurace magic link neodešle", async () => {
+  const delivery = createMagicLinkDelivery({
+    env: { ...env, SMTP_PASSWORD: "" },
+    isDevelopment: false,
+  });
+
+  await assert.rejects(
+    () => delivery.deliver({ email: "host@example.cz", magicLink: "https://example.cz/auth/verify?token=secret" }),
+    /SMTP_PASSWORD/,
+  );
 });

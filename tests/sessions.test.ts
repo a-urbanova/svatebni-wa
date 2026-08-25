@@ -21,6 +21,12 @@ const env: ServerEnv = {
   MAGIC_LINK_TTL_MINUTES: 15,
   SESSION_TTL_DAYS: 7,
   ENABLE_DEV_MAGIC_LINK: false,
+  SMTP_HOST: "smtp.example.cz",
+  SMTP_PORT: 587,
+  SMTP_USERNAME: "smtp-user",
+  SMTP_PASSWORD: "smtp-password",
+  SMTP_FROM: "Anna & Petr <noreply@example.cz>",
+  SMTP_SECURE: false,
 };
 const now = new Date("2026-08-07T10:00:00.000Z");
 

@@ -75,7 +75,10 @@ export async function POST(request: Request): Promise<Response> {
     const outcome = await requestMagicLink(payload, {
       env,
       loginTokens,
-      delivery: createMagicLinkDelivery(process.env.NODE_ENV === "development"),
+      delivery: createMagicLinkDelivery({
+        env,
+        isDevelopment: process.env.NODE_ENV === "development",
+      }),
       isDevelopment: process.env.NODE_ENV === "development",
     });
 

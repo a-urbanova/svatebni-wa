@@ -4,12 +4,12 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 13 dokončena
-- Poslední dokončená fáze: 13 – Bezpečnost a odolnost
-- Poslední aktualizace: 2026-08-13
-- Stav hlavní větve: lokální Git repozitář je inicializovaný na větvi `main`; výchozí commit zatím neexistuje
+- Aktuální fáze: 14 dokončena
+- Poslední dokončená fáze: 14 – Produkční doručení magic linku
+- Poslední aktualizace: 2026-08-25
+- Stav hlavní větve: lokální větev `main` je propojená s `origin/main` na GitHubu; produkční nasazení se spouští po pushi přes Vercel Git integration.
 - Správce balíčků: pnpm 11.9.0
-- Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.2.12, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3
+- Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.3.0, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3, Nodemailer 7.0.12
 - Databáze používaná při lokálním vývoji: lokální MongoDB z necommitovaného `.env.local` na `127.0.0.1:27017`; izolované testy používají samostatnou databázi `svatebni_wa_test`
 
 ## Přehled fází
@@ -29,7 +29,8 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 11 | Admin dashboard | Dokončeno | 2026-08-13 |
 | 12 | Responzivita, přístupnost a stavy | Dokončeno | 2026-08-13 |
 | 13 | Bezpečnost a odolnost | Dokončeno | 2026-08-13 |
-| 14 | Testy a finální akceptace | Nezahájeno | — |
+| 14 | Produkční doručení magic linku | Dokončeno | 2026-08-13 |
+| 15 | Testy a finální akceptace | Nezahájeno | — |
 
 Povolené stavy: `Nezahájeno`, `Probíhá`, `Dokončeno`, `Blokováno`.
 
@@ -709,7 +710,7 @@ Fáze 10 může stavět read-only administrativní data nad `RsvpRepository.getA
 
 ### Fáze 10 – Admin data a souhrny
 
-- Datum dokončení: 2026-08-13
+- Datum dokončení: 2026-08-25
 - Stav: Dokončeno
 
 #### Stručný popis provedených změn
@@ -986,4 +987,67 @@ Kontrola závislostí našla zranitelné tranzitivní verze `sharp`, `postcss` a
 
 #### Poznámky pro následující fázi
 
-Fáze 14 může považovat bezpečnostní regresní testy za součást výchozí sady. Při finální akceptaci má ponechat lokální omezení limiteru transparentně zdokumentované a testovat s platnou `Origin` hlavičkou pro všechny mutace.
+Fáze 14 může považovat bezpečnostní regresní testy za součást výchozí sady. Produkční SMTP musí zachovat obecné odpovědi a nesmí logovat ani vracet token. Při finální akceptaci má ponechat lokální omezení limiteru transparentně zdokumentované a testovat s platnou `Origin` hlavičkou pro všechny mutace.
+
+### Fáze 14 – Produkční doručení magic linku
+
+- Datum dokončení: 2026-08-13
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Produkční větev magic-link toku nyní odešle jednorázový odkaz na normalizovaný e-mail přes standardní SMTP. E-mail obsahuje čitelnou textovou i HTML verzi, předmět a dobu platnosti podle konfigurace. Development tok se nezměnil: pouze v `NODE_ENV=development` stále vypisuje a volitelně vrací lokální klikací odkaz.
+
+SMTP přihlašovací údaje, host, port, zabezpečení a adresa odesílatele jsou výhradně serverové proměnné prostředí. Neúplná SMTP konfigurace nebo selhání odeslání neskončí únikem tokenu: endpoint vrátí obecnou chybu, nezaloguje citlivý odkaz a uživatel si může vyžádat nový.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `lib/auth/magic-links.ts` – SMTP adaptér Nodemaileru a obsah e-mailu magic linku
+- `lib/config/env.schema.ts` – validace a typy `SMTP_*` proměnných
+- `app/api/auth/magic-link/route.ts` – předání serverové konfigurace doručovacímu adaptéru
+- `.env.example`, `README.md` – bezpečná šablona a provozní návod pro SMTP
+- `tests/magic-links.test.ts`, `tests/env.test.ts`, `tests/sessions.test.ts` – testy odeslání, konfigurace a aktualizované serverové kontrakty
+- `docs/faze/14-produkcni-doruceni-magic-linku.md` – zadání a ruční test této doplňkové fáze
+- `docs/faze/15-testy-a-finalni-akceptace.md`, `docs/faze/README.md` – posunutí závěrečné akceptace po ověření reálného e-mailu
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: Produkční doručení používá obecné SMTP místo vazby na konkrétní e-mailovou službu.
+- Důvod: Stejná konfigurace funguje s poskytovatelem hostingu i se specializovanou transakční e-mailovou službou.
+- Dopad na další fáze: Před nasazením je nutné v hostingu nastavit veřejnou HTTPS `APP_URL`, ověřeného odesílatele a všechny `SMTP_*` proměnné.
+- Rozhodnutí: SMTP proměnné jsou ve vývojovém režimu volitelné, ale při produkčním odeslání musí být kompletní.
+- Důvod: Lokální testovatelnost nesmí vyžadovat externí účet, produkce však nesmí předstírat úspěšné doručení.
+- Dopad na další fáze: Finální akceptace musí provést skutečný test doručení s produkční konfigurací.
+
+#### Známá omezení nebo nedodělky
+
+- Produkční nasazení běží na Vercelu a používá prázdný MongoDB Atlas cluster. Všechny produkční hodnoty včetně SMTP zůstávají pouze ve Vercel Environment Variables.
+- Skutečné doručení e-mailu je ještě potřeba ověřit ruční žádostí o magic link po každé změně SMTP hesla nebo odesílatele.
+- Pokud SMTP server dočasně odmítne zprávu, aplikace neprovádí automatické opakování; host si může vyžádat nový link.
+
+#### Chyby, které se objevily
+
+- Chyba: Nodemailer neposkytuje vlastní TypeScript deklarace ve zvolené verzi.
+- Příčina: Balíček publikuje JavaScript bez deklarací.
+- Způsob opravy: Byla přidána vývojová závislost `@types/nodemailer`.
+- Zůstává nějaké riziko: Ne; typová kontrola rozhraní SMTP prochází.
+
+#### Provedené automatické kontroly
+
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 41 testů prošlo, 1 izolovaný databázový test byl očekávaně přeskočen bez `pnpm test:db`.
+
+#### Návrh ručního testování dokončené fáze
+
+1. V produkčním prostředí nastavte veřejnou HTTPS `APP_URL`, `ENABLE_DEV_MAGIC_LINK=false` a úplné SMTP hodnoty podle `README.md`.
+2. Vyžádejte magic link na běžnou adresu, ověřte přijetí e-mailu a otevřete odkaz jednou i podruhé.
+3. V síťovém panelu a logu ověřte, že produkční odpověď ani log token neobsahují.
+4. Lokálně zapněte `ENABLE_DEV_MAGIC_LINK=true` a ověřte, že se místo SMTP objeví dosavadní vývojový odkaz.
+
+#### Očekávaný výsledek ručního testu
+
+Příjemce dostane e-mail s jednorázovým odkazem na veřejnou adresu aplikace. První otevření vytvoří session, druhé je odmítnuto. Token není v produkčních odpovědích ani lozích a lokální vývoj funguje bez SMTP.
+
+#### Poznámky pro následující fázi
+
+Fáze 15 má vedle lokálního scénáře zahrnout skutečné produkční doručení e-mailu, pokud již budou dostupné doména a SMTP účet.

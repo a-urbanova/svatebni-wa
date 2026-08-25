@@ -15,4 +15,5 @@ Spouštějte vždy jen jednu fázi a v uvedeném pořadí.
 11. [Fáze 11 – Admin dashboard](./11-admin-dashboard.md)
 12. [Fáze 12 – Responzivita, přístupnost a stavové scénáře](./12-responzivita-pristupnost-a-stavy.md)
 13. [Fáze 13 – Bezpečnost a odolnost](./13-bezpecnost-a-odolnost.md)
-14. [Fáze 14 – Testy a finální akceptace](./14-testy-a-finalni-akceptace.md)
+14. [Fáze 14 – Produkční doručení magic linku](./14-produkcni-doruceni-magic-linku.md)
+15. [Fáze 15 – Testy a finální akceptace](./15-testy-a-finalni-akceptace.md)

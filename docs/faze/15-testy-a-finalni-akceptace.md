@@ -1,4 +1,4 @@
-# Fáze 14 – Testy a finální akceptace
+# Fáze 15 – Testy a finální akceptace
 
 ## Pokyn pro agenta
 
