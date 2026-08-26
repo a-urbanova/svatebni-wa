@@ -1,6 +1,6 @@
 import { RingsMotif, SectionDivider } from "./ui";
 
-export function InvitationSection() {
+export function InvitationSection({ showLoginInformation = true }: { showLoginInformation?: boolean }) {
   return (
     <section className="invitation" aria-labelledby="invitation-title">
       <p className="eyebrow">Svatební pozvánka</p>
@@ -24,11 +24,13 @@ export function InvitationSection() {
         </p>
       </div>
 
-      <p className="invitation-intro">
-        Po přihlášení budete moci zaregistrovat svou účast, doplnit počet osob
-        včetně dětí, přespání, případný odvoz i dietární omezení. Pro přihlášení
-        použijte svůj e-mail a společný svatební kód.
-      </p>
+      {showLoginInformation ? (
+        <p className="invitation-intro">
+          Po přihlášení budete moci zaregistrovat svou účast, doplnit počet osob
+          včetně dětí, přespání, případný odvoz i dietární omezení. Pro přihlášení
+          použijte svůj e-mail a společný svatební kód.
+        </p>
+      ) : null}
       <SectionDivider />
     </section>
   );

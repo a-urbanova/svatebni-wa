@@ -4,7 +4,7 @@ export function UserBar({ email, className = "" }: { email: string; className?: 
   return (
     <div className={`user-bar ${className}`.trim()}>
       <p>
-        Přihlášeni jako <strong>{email}</strong>
+        Přihlášen/a jako <strong>{email}</strong>
       </p>
       <form action="/api/auth/logout" method="post">
         <OutlineButton type="submit">Odhlásit se</OutlineButton>

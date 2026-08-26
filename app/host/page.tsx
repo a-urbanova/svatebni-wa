@@ -25,7 +25,7 @@ export default async function HostPage() {
       <SkipLink href="#host-rsvp" />
       <main className="page-shell page-shell-invitation">
         <div className="content-container content-container-narrow">
-          <InvitationSection />
+          <InvitationSection showLoginInformation={false} />
           <UserBar email={session.email} />
           <HostRsvpForm />
         </div>

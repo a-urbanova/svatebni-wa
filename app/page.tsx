@@ -1,12 +1,22 @@
 import { InvitationSection } from "@/components/invitation";
 import { LoginForm } from "@/components/login-form";
 import { Card, SkipLink, StatusMessage } from "@/components/ui";
+import { destinationForRole, getCurrentSession } from "@/lib/auth/sessions";
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 type HomePageProps = {
   searchParams: Promise<{ auth?: string }>;
 };
 
 export default async function Home({ searchParams }: HomePageProps) {
+  const session = await getCurrentSession();
+
+  if (session) {
+    redirect(destinationForRole(session.role));
+  }
+
   const { auth } = await searchParams;
   const authMessage =
     auth === "invalid-link"
