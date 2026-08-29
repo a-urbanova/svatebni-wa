@@ -11,7 +11,7 @@ export function InvitationSection({ showLoginInformation = true }: { showLoginIn
 
       <div className="invitation-details">
         <p className="invitation-copy">
-          Srdečně vás zveme na náš svatební obřad,
+          Srdečně Vás zveme na náš svatební obřad,
           <br />
           {" "}který se bude konat
         </p>
