@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // E2E test spouští vlastní dev server vedle případného ručního vývoje.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Lokální prohlížeč a integrovaný náhled mohou používat různý hostname.
   // Bez obou hodnot Next.js zablokuje HMR a stránka může kombinovat nový markup
   // se starým CSS bundlem.

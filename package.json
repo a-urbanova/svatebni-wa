@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "node --conditions react-server --test",
     "test:db": "RUN_MONGODB_INTEGRATION_TESTS=true node --conditions react-server --env-file-if-exists=.env.test --test tests/db-repositories.test.ts",
-    "db:indexes": "node --conditions react-server --env-file=.env.local scripts/init-mongodb-indexes.ts"
+    "test:e2e": "RUN_E2E_TESTS=true node --conditions react-server --env-file-if-exists=.env.test --test tests/e2e-acceptance.test.ts",
+    "db:indexes": "node --conditions react-server --env-file=.env.local scripts/init-mongodb-indexes.ts",
+    "db:reset-local": "node --conditions react-server --env-file=.env.local scripts/reset-safe-local-database.ts",
+    "db:seed-demo": "node --conditions react-server --env-file=.env.local scripts/seed-demo-data.ts"
   },
   "dependencies": {
     "mongodb": "7.1.0",

@@ -4,9 +4,9 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 
 ## Stav projektu
 
-- Aktuální fáze: 14 dokončena
-- Poslední dokončená fáze: 14 – Produkční doručení magic linku
-- Poslední aktualizace: 2026-08-25
+- Aktuální fáze: 15 dokončena
+- Poslední dokončená fáze: 15 – Testy a finální akceptace
+- Poslední aktualizace: 2026-08-29
 - Stav hlavní větve: lokální větev `main` je propojená s `origin/main` na GitHubu; produkční nasazení se spouští po pushi přes Vercel Git integration.
 - Správce balíčků: pnpm 11.9.0
 - Přesné verze Node.js a hlavních knihoven: Node.js 24.14.0, Next.js 16.3.0, React 19.2.4, React DOM 19.2.4, TypeScript 5.9.3, Nodemailer 7.0.12
@@ -30,7 +30,7 @@ Tento soubor je pracovní deník. Agent jej aktualizuje po každé dokončené f
 | 12 | Responzivita, přístupnost a stavy | Dokončeno | 2026-08-13 |
 | 13 | Bezpečnost a odolnost | Dokončeno | 2026-08-13 |
 | 14 | Produkční doručení magic linku | Dokončeno | 2026-08-13 |
-| 15 | Testy a finální akceptace | Nezahájeno | — |
+| 15 | Testy a finální akceptace | Dokončeno | 2026-08-29 |
 
 Povolené stavy: `Nezahájeno`, `Probíhá`, `Dokončeno`, `Blokováno`.
 
@@ -1051,3 +1051,74 @@ Příjemce dostane e-mail s jednorázovým odkazem na veřejnou adresu aplikace.
 #### Poznámky pro následující fázi
 
 Fáze 15 má vedle lokálního scénáře zahrnout skutečné produkční doručení e-mailu, pokud již budou dostupné doména a SMTP účet.
+
+### Fáze 15 – Testy a finální akceptace
+
+- Datum dokončení: 2026-08-29
+- Stav: Dokončeno
+
+#### Stručný popis provedených změn
+
+Byl doplněn izolovaný end-to-end test skutečného lokálního HTTP toku. Test žádá development magic link, přihlásí běžného hosta, uloží a znovu načte tři osoby, ověří oddělení druhého hosta, roli správce, zákaz hosta v administraci, použitý i uměle exponovaný link a odhlášení. Databáze `svatebni_wa_e2e_test` se před testem i po něm maže.
+
+README nyní obsahuje úplné lokální převzetí, konfiguraci, indexy, development magic link, všechny kontroly, ukázková data, bezpečný reset a řešení běžných potíží. Přibyly bezpečně omezené skripty pro ukázková data (`_demo`) a reset (`_local` nebo `_demo`). Mapa v `docs/AKCEPTACE.md` přiřazuje každému akceptačnímu kritériu automatickou nebo ruční kontrolu.
+
+#### Důležité vytvořené nebo změněné soubory
+
+- `tests/e2e-acceptance.test.ts` – izolovaný e2e průchod proti lokálnímu Next serveru a MongoDB.
+- `package.json` – příkaz `pnpm test:e2e` a bezpečné databázové pomocné příkazy.
+- `scripts/seed-demo-data.ts`, `scripts/reset-safe-local-database.ts` – fiktivní ukázková data a reset s ochranou názvu databáze.
+- `README.md` – provozní dokumentace pro lokální převzetí.
+- `docs/AKCEPTACE.md` – mapa zadání na testy a ruční ověření.
+- `next.config.ts`, `eslint.config.mjs` – izolovaný e2e dev výstup, který nekoliduje s ručním `next dev` ani s lintem.
+- `docs/POSTUP.md` – tento pravdivý závěrečný záznam.
+
+#### Zásadní technická rozhodnutí
+
+- Rozhodnutí: E2E startuje vlastní Next dev server s dočasným `.next-e2e` výstupem a po skončení vrací automaticky upravený `tsconfig.json` i výstupní adresář do čistého stavu.
+- Důvod: Test nesmí kolidovat s běžícím lokálním vývojem ani zanechávat generované soubory ve zdrojovém stromu.
+- Dopad na další fáze: `pnpm test:e2e` je opakovatelný a potřebuje jen `.env.test` s bezpečnou MongoDB.
+- Rozhodnutí: Reset a seed odmítají běžný název databáze.
+- Důvod: Akceptační a demonstrační nástroje nesmí omylem změnit databázi s reálnými odpověďmi.
+- Dopad na další fáze: Pro jejich použití musí člověk vědomě zvolit databázi končící `_local` nebo `_demo`.
+
+#### Známá omezení nebo nedodělky
+
+- Reálné produkční SMTP doručení nebylo v této fázi fyzicky odesláno, protože v tomto prostředí není zpřístupněný produkční SMTP účet ani příjemce. Implementace je krytá jednotkovým testem; před nasazením je nutná jednorázová ruční zkouška podle README.
+- Lokální rate limit zůstává omezený na jeden proces; toto známé omezení je uvedeno výše ve společném seznamu.
+- Fyzické vypnutí uživatelem provozované MongoDB nebylo provedeno, aby finální akceptace nepřerušila jeho lokální službu. Handlerové chybové větve zůstávají zdokumentované pro ruční kontrolu podle mapy akceptace.
+
+#### Chyby, které se objevily
+
+- Chyba: První e2e dev server kolidoval s již běžícím `next dev` a následný izolovaný build byl zahrnut do ESLintu.
+- Příčina: Next.js uzamyká sdílený dev výstup; vlastní výstup nebyl v ESLint konfiguraci ignorovaný.
+- Způsob opravy: E2E používá vlastní výstup `.next-e2e`, ESLint jej ignoruje a test po sobě čistí generovaný výstup i změnu `tsconfig.json`.
+- Zůstává nějaké riziko: Ne; opakovaný e2e i lint po opravě prošly.
+
+#### Provedené automatické kontroly
+
+- `pnpm lint` – úspěch.
+- `pnpm typecheck` – úspěch.
+- `pnpm test` – úspěch: 42 testů prošlo, 2 izolované databázové/e2e testy byly očekávaně přeskočeny.
+- `pnpm test:db` – úspěch: 1 test prošel nad izolovanou databází.
+- `pnpm test:e2e` – úspěch: 1 e2e test prošel; databáze `svatebni_wa_e2e_test` byla uklizena.
+- `pnpm db:seed-demo` a `pnpm db:reset-local` nad `svatebni_wa_demo` – úspěch; zapsána a následně smazána pouze fiktivní data.
+- `pnpm build` – úspěch s Next.js 16.3.0.
+- Čistá kopie projektu: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck` – úspěch.
+
+#### Návrh ručního testování dokončené fáze
+
+1. Podle README vytvořte bezpečnou `.env.local`, spusťte MongoDB, `pnpm db:indexes` a `pnpm dev`; zkontrolujte veřejnou stránku na 360, 768 a 1440 px.
+2. Zadejte chybný e-mail a chybný kód, pak pro fiktivní běžný e-mail vyžádejte development magic link.
+3. Otevřete odkaz a vyplňte tři osoby: dospělého s přespáním, dítě bez přespání a osobu s odvozem, cílem, dietou Jiná a poznámkou. Uložte, obnovte stránku, odhlaste se a data po novém přihlášení upravte.
+4. S druhým fiktivním e-mailem ověřte prázdný, oddělený formulář. S administrátorským e-mailem ověřte souhrny, všechny sloupce, hledání a filtry; jako host zkuste `/admin`.
+5. Otevřete použitý a po čekání na platnost také expirovaný link; ověřte odhlášení. Klávesnicí projděte skip link, formulář i vodorovně posuvnou admin tabulku.
+6. V bezpečném lokálním prostředí krátce zastavte a znovu spusťte MongoDB; ověřte český chybový stav a možnost opakování. Pak spusťte všechny příkazy z kapitoly Kontroly kvality v README.
+
+#### Očekávaný výsledek ručního testu
+
+Veřejná stránka je čitelná bez horizontálního posunu, chyby jsou česky u příslušných polí a magic link funguje právě jednou. Host vidí a mění jen vlastní uložené osoby; správce vidí všechny uložené osoby, souhrny a filtry, ale žádnou mutační akci. Host se do administrace nedostane, odhlášená session přestane fungovat a dočasná databázová nedostupnost zobrazí bezpečnou českou chybu. Všechny kontrolní příkazy projdou.
+
+#### Poznámky pro následující fázi
+
+Před skutečným nasazením ověřte produkční SMTP s ověřeným odesílatelem a provádějte reset/seed jen nad vědomě oddělenými databázemi.
